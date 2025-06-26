@@ -29,10 +29,14 @@
 // );*
 
 /*SQL*/
+const dotenv = require("dotenv");
+dotenv.config();
+
+// ton code ici...
+
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
-const dotenv = require("dotenv");
 const { connectDB } = require("./config/db");
 const { initializeUserModel } = require("./models/user.model");
 const authRoutes = require("./routes/auth.routes");
