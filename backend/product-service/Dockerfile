@@ -1,5 +1,3 @@
-// ===== 5. Dockerfile (CORRIGÉ) =====
-/*
 FROM node:18-alpine
 
 WORKDIR /app
@@ -18,4 +16,3 @@ EXPOSE 5001
 
 # Démarrer l'application
 CMD ["node", "app.js"]
-*/
