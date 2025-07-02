@@ -9,6 +9,8 @@ exports.createProduct = async (req, res) => {
   }
 };
 
+
+
 exports.getProducts = async (req, res) => {
   try {
     const products = await Product.findAll();
@@ -48,4 +50,17 @@ exports.deleteProduct = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+};
+
+exports.updateProductStock = async (req, res) => {
+  const product = await Product.findByPk(req.params.id);
+  if (!product) return res.status(404).json({ error: "Produit non trouvé" });
+
+  const { stockChange } = req.body; // négatif si décrément
+  product.stock += stockChange;
+
+  if (product.stock < 0) return res.status(400).json({ error: "Stock insuffisant" });
+
+  await product.save();
+  res.json({ message: "Stock mis à jour", stock: product.stock });
 };

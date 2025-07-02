@@ -90,7 +90,7 @@
 # volumes:
 #   mysql-auth-data:
 #   grafana-storage:
-version: "3.8"
+#version: "3.8"
 
 services:
   # Base de données pour le service d'authentification
@@ -146,6 +146,33 @@ services:
       retries: 15
       start_period: 60s
     restart: unless-stopped
+
+  mysql-order-db:
+    image: mysql:8.0
+    container_name: mysql-order-db
+    ports:
+      - "3309:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: orderdb
+      MYSQL_PASSWORD: root
+      MYSQL_ROOT_HOST: "%"
+    volumes:
+      - mysql-order-data:/var/lib/mysql
+      - ./init-db/order:/docker-entrypoint-initdb.d
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --bind-address=0.0.0.0
+      --skip-name-resolve
+    healthcheck:
+      test:
+        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+    restart: unless-stopped
+  
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -205,6 +232,27 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  order-service:
+    build:
+      context: ./order-service
+    container_name: order-service
+    ports:
+      - "5002:5002"
+    environment:
+      - PORT=5002
+      - DB_HOST=mysql-order-db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=orderdb
+    depends_on:
+      mysql-order-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+
   prometheus:
     image: prom/prometheus
     container_name: prometheus
@@ -229,3 +277,5 @@ volumes:
   mysql-auth-data:
   mysql-product-data:
   grafana-storage:
+  mysql-order-data:
+
