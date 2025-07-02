@@ -129,3 +129,24 @@ exports.updateUser = async (req, res) => {
     res.status(500).json({ msg: "Erreur serveur" });
   }
 };
+
+
+exports.getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id, {
+      attributes: { exclude: ["password"] }, // On exclut le mot de passe
+    });
+
+    if (!user) {
+      return res.status(404).json({ msg: "Utilisateur non trouvé" });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error("Erreur récupération utilisateur par ID:", err);
+    res.status(500).json({ msg: "Erreur serveur" });
+  }
+};
+
