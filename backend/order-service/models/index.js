@@ -1,36 +1,24 @@
 const { sequelize } = require("../config/db");
-const { DataTypes } = require("sequelize");
-
-const Order = sequelize.define("Order", {
-  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-  userId: { type: DataTypes.INTEGER, allowNull: false },
-  status: {
-    type: DataTypes.ENUM("pending", "paid", "shipped", "cancelled"),
-    defaultValue: "pending",
-  },
-  total: { type: DataTypes.FLOAT, allowNull: false },
-}, {
-  timestamps: true,
-  tableName: "orders",
-});
-
-const OrderItem = sequelize.define("OrderItem", {
-  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-  orderId: { type: DataTypes.INTEGER, allowNull: false },
-  productId: { type: DataTypes.INTEGER, allowNull: false },
-  quantity: { type: DataTypes.INTEGER, allowNull: false },
-}, {
-  timestamps: true,
-  tableName: "order_items",
-});
+const { Order } = require("./order.model");
+const { OrderItem } = require("./orderItem.model");
 
 // Associations
 Order.hasMany(OrderItem, { foreignKey: "orderId", as: "items" });
-OrderItem.belongsTo(Order, { foreignKey: "orderId" });
+OrderItem.belongsTo(Order, { foreignKey: "orderId", as: "order" });
 
 const initializeModels = async () => {
-  await sequelize.sync();
-  console.log("✅ Tables synchronisées");
+  try {
+    console.log("🔄 Synchronisation des modèles...");
+
+    // Sync dans l'ordre : d'abord Order, puis OrderItem
+    await Order.sync({ alter: true });
+    await OrderItem.sync({ alter: true });
+
+    console.log("✅ Tables synchronisées avec succès");
+  } catch (error) {
+    console.error("❌ Erreur lors de la synchronisation:", error);
+    throw error;
+  }
 };
 
 module.exports = {

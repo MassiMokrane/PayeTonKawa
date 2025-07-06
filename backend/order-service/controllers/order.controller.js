@@ -1,63 +1,468 @@
-const { checkUserExists, checkProductStock, updateProductStock } = require("../utils/api");
+// const {
+//   checkUserExists,
+//   getProductDetails,
+//   updateProductStock,
+// } = require("../utils/api");
+// const { publishToQueue } = require("../utils/messageBroker");
+// const { Order, OrderItem } = require("../models");
+
+// exports.createOrder = async (req, res) => {
+//   const { userId, items } = req.body;
+
+//   // Validation: items ne doit contenir que productId et quantity
+//   if (!Array.isArray(items) || items.length === 0) {
+//     return res
+//       .status(400)
+//       .json({ error: "La liste des produits est vide ou invalide" });
+//   }
+
+//   // Vérifier que chaque item a bien productId et quantity
+//   for (const item of items) {
+//     if (!item.productId || !item.quantity || item.quantity <= 0) {
+//       return res.status(400).json({
+//         error: "Chaque produit doit avoir un productId et une quantity valide",
+//       });
+//     }
+//   }
+
+//   try {
+//     // Vérifier que l'utilisateur existe
+//     const userExists = await checkUserExists(userId);
+//     if (!userExists) {
+//       return res.status(400).json({ error: "Utilisateur inexistant" });
+//     }
+
+//     // Préparer les données des produits avec leurs prix
+//     const itemsWithPrices = [];
+//     let totalOrder = 0;
+
+//     for (const item of items) {
+//       // Récupérer les détails du produit
+//       const product = await getProductDetails(item.productId);
+//       if (!product) {
+//         return res.status(400).json({
+//           error: `Produit ${item.productId} introuvable`,
+//         });
+//       }
+
+//       // Vérifier le stock
+//       if (product.quantity < item.quantity) {
+//         return res.status(400).json({
+//           error: `Stock insuffisant pour le produit ${item.productId}. Stock disponible: ${product.quantity}, demandé: ${item.quantity}`,
+//         });
+//       }
+
+//       // Calculer le prix total pour cet item
+//       const itemTotal = product.price * item.quantity;
+//       totalOrder += itemTotal;
+
+//       itemsWithPrices.push({
+//         productId: item.productId,
+//         quantity: item.quantity,
+//         unitPrice: product.price,
+//         totalPrice: itemTotal,
+//         newStock: product.quantity - item.quantity,
+//       });
+//     }
+
+//     // Créer la commande
+//     const order = await Order.create({
+//       userId,
+//       total: totalOrder,
+//       status: "pending",
+//     });
+
+//     // Créer les items de la commande
+//     const orderItems = itemsWithPrices.map((item) => ({
+//       orderId: order.id,
+//       productId: item.productId,
+//       quantity: item.quantity,
+//       unitPrice: item.unitPrice,
+//       totalPrice: item.totalPrice,
+//     }));
+
+//     await OrderItem.bulkCreate(orderItems);
+
+//     // Mettre à jour le stock des produits
+//     for (const item of itemsWithPrices) {
+//       // Mettre à jour le stock directement
+//       const stockUpdated = await updateProductStock(
+//         item.productId,
+//         item.newStock
+//       );
+
+//       if (!stockUpdated) {
+//         console.warn(
+//           `⚠️ Échec mise à jour stock pour produit ${item.productId}`
+//         );
+//       }
+
+//       // Envoyer message à RabbitMQ pour notification
+//       await publishToQueue("product-queue", {
+//         type: "STOCK_UPDATED",
+//         data: {
+//           productId: item.productId,
+//           oldQuantity: item.newStock + item.quantity,
+//           newQuantity: item.newStock,
+//           orderId: order.id,
+//         },
+//       });
+//     }
+
+//     // Récupérer la commande complète avec ses items
+//     const createdOrder = await Order.findByPk(order.id, {
+//       include: [
+//         {
+//           model: OrderItem,
+//           as: "items",
+//           attributes: [
+//             "id",
+//             "productId",
+//             "quantity",
+//             "unitPrice",
+//             "totalPrice",
+//           ],
+//         },
+//       ],
+//     });
+
+//     res.status(201).json({
+//       message: "Commande créée avec succès",
+//       order: createdOrder,
+//     });
+//   } catch (error) {
+//     console.error("❌ Erreur création commande:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// exports.getOrders = async (req, res) => {
+//   try {
+//     const orders = await Order.findAll({
+//       include: [
+//         {
+//           model: OrderItem,
+//           as: "items",
+//           attributes: [
+//             "id",
+//             "productId",
+//             "quantity",
+//             "unitPrice",
+//             "totalPrice",
+//           ],
+//         },
+//       ],
+//       order: [["createdAt", "DESC"]],
+//     });
+
+//     res.status(200).json(orders);
+//   } catch (error) {
+//     console.error("❌ Erreur récupération commandes:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// exports.getOrderById = async (req, res) => {
+//   try {
+//     const order = await Order.findByPk(req.params.id, {
+//       include: [
+//         {
+//           model: OrderItem,
+//           as: "items",
+//           attributes: [
+//             "id",
+//             "productId",
+//             "quantity",
+//             "unitPrice",
+//             "totalPrice",
+//           ],
+//         },
+//       ],
+//     });
+
+//     if (!order) {
+//       return res.status(404).json({ error: "Commande non trouvée" });
+//     }
+
+//     res.status(200).json(order);
+//   } catch (error) {
+//     console.error("❌ Erreur récupération commande:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// exports.updateOrder = async (req, res) => {
+//   try {
+//     const order = await Order.findByPk(req.params.id);
+//     if (!order) {
+//       return res.status(404).json({ error: "Commande non trouvée" });
+//     }
+
+//     // Empêcher la modification du total directement
+//     const { total, ...updateData } = req.body;
+
+//     await order.update(updateData);
+
+//     // Récupérer la commande mise à jour avec ses items
+//     const updatedOrder = await Order.findByPk(req.params.id, {
+//       include: [
+//         {
+//           model: OrderItem,
+//           as: "items",
+//           attributes: [
+//             "id",
+//             "productId",
+//             "quantity",
+//             "unitPrice",
+//             "totalPrice",
+//           ],
+//         },
+//       ],
+//     });
+
+//     res.status(200).json(updatedOrder);
+//   } catch (error) {
+//     console.error("❌ Erreur mise à jour commande:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// exports.deleteOrder = async (req, res) => {
+//   try {
+//     const order = await Order.findByPk(req.params.id, {
+//       include: [{ model: OrderItem, as: "items" }],
+//     });
+
+//     if (!order) {
+//       return res.status(404).json({ error: "Commande non trouvée" });
+//     }
+
+//     // Optionnel: remettre le stock si la commande est annulée
+//     if (order.status === "pending") {
+//       for (const item of order.items) {
+//         const product = await getProductDetails(item.productId);
+//         if (product) {
+//           await updateProductStock(
+//             item.productId,
+//             product.quantity + item.quantity
+//           );
+//         }
+//       }
+//     }
+
+//     await order.destroy();
+//     res.status(204).send();
+//   } catch (error) {
+//     console.error("❌ Erreur suppression commande:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// exports.getOrdersByUserId = async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+
+//     const orders = await Order.findAll({
+//       where: { userId },
+//       include: [
+//         {
+//           model: OrderItem,
+//           as: "items",
+//           attributes: [
+//             "id",
+//             "productId",
+//             "quantity",
+//             "unitPrice",
+//             "totalPrice",
+//           ],
+//         },
+//       ],
+//       order: [["createdAt", "DESC"]],
+//     });
+
+//     res.status(200).json(orders);
+//   } catch (error) {
+//     console.error("❌ Erreur récupération commandes utilisateur:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+const {
+  checkUserExists,
+  getProductDetails,
+  updateProductStock,
+} = require("../utils/api");
 const { publishToQueue } = require("../utils/messageBroker");
 const { Order, OrderItem } = require("../models");
 
 exports.createOrder = async (req, res) => {
-  const { userId, total, items } = req.body;
+  const { userId, items } = req.body;
 
+  // Validation: items ne doit contenir que productId et quantity
   if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ error: "La liste des produits est vide ou invalide" });
+    return res
+      .status(400)
+      .json({ error: "La liste des produits est vide ou invalide" });
+  }
+
+  // Vérifier que chaque item a bien productId et quantity
+  for (const item of items) {
+    if (!item.productId || !item.quantity || item.quantity <= 0) {
+      return res.status(400).json({
+        error: "Chaque produit doit avoir un productId et une quantity valide",
+      });
+    }
   }
 
   try {
+    // Vérifier que l'utilisateur existe
     const userExists = await checkUserExists(userId);
-    if (!userExists) return res.status(400).json({ error: "Utilisateur inexistant" });
-
-    for (const item of items) {
-      const stockOk = await checkProductStock(item.productId, item.quantity);
-      if (!stockOk) {
-        return res.status(400).json({
-          error: `Stock insuffisant pour le produit ${item.productId}`,
-        });
-      }
+    if (!userExists) {
+      return res.status(400).json({ error: "Utilisateur inexistant" });
     }
 
-    const order = await Order.create({ userId, total, status: "pending" });
+    // Préparer les données des produits avec leurs prix
+    const itemsWithPrices = [];
+    let totalOrder = 0;
 
-    const orderItems = items.map(item => ({
+    for (const item of items) {
+      // Récupérer les détails du produit
+      const product = await getProductDetails(item.productId);
+      if (!product) {
+        return res.status(400).json({
+          error: `Produit ${item.productId} introuvable`,
+        });
+      }
+
+      // Vérifier le stock
+      if (product.quantity < item.quantity) {
+        return res.status(400).json({
+          error: `Stock insuffisant pour le produit ${item.productId}. Stock disponible: ${product.quantity}, demandé: ${item.quantity}`,
+        });
+      }
+
+      // Calculer le prix total pour cet item
+      const itemTotal = product.price * item.quantity;
+      totalOrder += itemTotal;
+
+      itemsWithPrices.push({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: product.price,
+        totalPrice: itemTotal,
+        newStock: product.quantity - item.quantity,
+      });
+    }
+
+    // Debug: Vérifier le calcul du total
+    console.log("=== DEBUG CALCUL TOTAL ===");
+    let totalDebug = 0;
+    itemsWithPrices.forEach((item, index) => {
+      console.log(
+        `Item ${index + 1}: ${item.unitPrice} × ${item.quantity} = ${
+          item.totalPrice
+        }`
+      );
+      totalDebug += item.totalPrice;
+    });
+    console.log(`Total final: ${totalDebug}`);
+    console.log("==========================");
+
+    // Créer la commande
+    const order = await Order.create({
+      userId,
+      total: totalOrder,
+      status: "pending",
+    });
+
+    // Créer les items de la commande
+    const orderItems = itemsWithPrices.map((item) => ({
       orderId: order.id,
       productId: item.productId,
       quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
     }));
 
     await OrderItem.bulkCreate(orderItems);
 
-    for (const item of items) {
+    // Mettre à jour le total de la commande après création des items
+    await order.update({ total: totalOrder });
+
+    // Mettre à jour le stock des produits
+    for (const item of itemsWithPrices) {
+      // Mettre à jour le stock directement
+      const stockUpdated = await updateProductStock(
+        item.productId,
+        item.newStock
+      );
+
+      if (!stockUpdated) {
+        console.warn(
+          `⚠️ Échec mise à jour stock pour produit ${item.productId}`
+        );
+      }
+
+      // Envoyer message à RabbitMQ pour notification
       await publishToQueue("product-queue", {
-        type: "UPDATE_quantity",
+        type: "STOCK_UPDATED",
         data: {
           productId: item.productId,
-          quantity: item.quantity,
+          oldQuantity: item.newStock + item.quantity,
+          newQuantity: item.newStock,
+          orderId: order.id,
         },
       });
     }
 
+    // Récupérer la commande complète avec ses items
     const createdOrder = await Order.findByPk(order.id, {
-      include: [{ model: OrderItem, as: "items" }],
+      include: [
+        {
+          model: OrderItem,
+          as: "items",
+          attributes: [
+            "id",
+            "productId",
+            "quantity",
+            "unitPrice",
+            "totalPrice",
+          ],
+        },
+      ],
     });
 
-    res.status(201).json(createdOrder);
+    res.status(201).json({
+      message: "Commande créée avec succès",
+      order: createdOrder,
+    });
   } catch (error) {
-    console.error("Erreur création commande:", error);
+    console.error("❌ Erreur création commande:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
 exports.getOrders = async (req, res) => {
   try {
-    const orders = await Order.findAll();
+    const orders = await Order.findAll({
+      include: [
+        {
+          model: OrderItem,
+          as: "items",
+          attributes: [
+            "id",
+            "productId",
+            "quantity",
+            "unitPrice",
+            "totalPrice",
+          ],
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
     res.status(200).json(orders);
   } catch (error) {
+    console.error("❌ Erreur récupération commandes:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -65,12 +470,28 @@ exports.getOrders = async (req, res) => {
 exports.getOrderById = async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id, {
-      include: [{ model: OrderItem, as: "items" }],
+      include: [
+        {
+          model: OrderItem,
+          as: "items",
+          attributes: [
+            "id",
+            "productId",
+            "quantity",
+            "unitPrice",
+            "totalPrice",
+          ],
+        },
+      ],
     });
 
-    if (!order) return res.status(404).json({ error: "Commande non trouvée" });
+    if (!order) {
+      return res.status(404).json({ error: "Commande non trouvée" });
+    }
+
     res.status(200).json(order);
   } catch (error) {
+    console.error("❌ Erreur récupération commande:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -78,23 +499,95 @@ exports.getOrderById = async (req, res) => {
 exports.updateOrder = async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id);
-    if (!order) return res.status(404).json({ error: "Commande non trouvée" });
+    if (!order) {
+      return res.status(404).json({ error: "Commande non trouvée" });
+    }
 
-    await order.update(req.body);
-    res.status(200).json(order);
+    // Empêcher la modification du total directement
+    const { total, ...updateData } = req.body;
+
+    await order.update(updateData);
+
+    // Récupérer la commande mise à jour avec ses items
+    const updatedOrder = await Order.findByPk(req.params.id, {
+      include: [
+        {
+          model: OrderItem,
+          as: "items",
+          attributes: [
+            "id",
+            "productId",
+            "quantity",
+            "unitPrice",
+            "totalPrice",
+          ],
+        },
+      ],
+    });
+
+    res.status(200).json(updatedOrder);
   } catch (error) {
+    console.error("❌ Erreur mise à jour commande:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
 exports.deleteOrder = async (req, res) => {
   try {
-    const order = await Order.findByPk(req.params.id);
-    if (!order) return res.status(404).json({ error: "Commande non trouvée" });
+    const order = await Order.findByPk(req.params.id, {
+      include: [{ model: OrderItem, as: "items" }],
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: "Commande non trouvée" });
+    }
+
+    // Optionnel: remettre le stock si la commande est annulée
+    if (order.status === "pending") {
+      for (const item of order.items) {
+        const product = await getProductDetails(item.productId);
+        if (product) {
+          await updateProductStock(
+            item.productId,
+            product.quantity + item.quantity
+          );
+        }
+      }
+    }
 
     await order.destroy();
     res.status(204).send();
   } catch (error) {
+    console.error("❌ Erreur suppression commande:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getOrdersByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const orders = await Order.findAll({
+      where: { userId },
+      include: [
+        {
+          model: OrderItem,
+          as: "items",
+          attributes: [
+            "id",
+            "productId",
+            "quantity",
+            "unitPrice",
+            "totalPrice",
+          ],
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("❌ Erreur récupération commandes utilisateur:", error);
     res.status(500).json({ error: error.message });
   }
 };
