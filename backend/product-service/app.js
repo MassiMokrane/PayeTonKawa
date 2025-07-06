@@ -1,8 +1,8 @@
-// ===== 2. APP.JS CORRIGÉ AVEC DEBUG =====
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const dotenv = require("dotenv");
+const path = require("path");
 
 // CHARGER .env EN PREMIER
 dotenv.config();
@@ -51,6 +51,9 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+// NOUVEAU: Servir les images statiques
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // Routes
 app.use("/api/products", productRoutes);
 
@@ -69,9 +72,25 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Middleware de gestion d'erreurs
+// Middleware de gestion d'erreurs globales
 app.use((err, req, res, next) => {
   console.error("Erreur serveur:", err.stack);
+
+  // Gestion spécifique des erreurs Multer
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res
+        .status(400)
+        .json({ error: "Fichier trop volumineux (max 5MB)" });
+    }
+    return res.status(400).json({ error: "Erreur d'upload: " + err.message });
+  }
+
+  // Gestion des erreurs de validation de fichier
+  if (err.message.includes("Seules les images sont autorisées")) {
+    return res.status(400).json({ error: err.message });
+  }
+
   res.status(500).json({ msg: "Erreur serveur", error: err.message });
 });
 
@@ -85,6 +104,9 @@ const startServer = async (retries = 5) => {
       await initDatabase();
       app.listen(PORT, "0.0.0.0", () => {
         console.log(`✅ Product-service démarré sur http://localhost:${PORT}`);
+        console.log(
+          `📁 Images accessibles sur http://localhost:${PORT}/uploads/`
+        );
       });
       return;
     } catch (error) {
