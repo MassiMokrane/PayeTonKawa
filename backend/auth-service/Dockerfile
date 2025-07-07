@@ -18,4 +18,4 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["npx", "node", "app.js"]
+CMD ["npx","node", "app.js"]

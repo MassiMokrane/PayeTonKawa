@@ -20,8 +20,9 @@ const Order = sequelize.define(
     total: {
       type: DataTypes.FLOAT,
       allowNull: false,
+      defaultValue: 0,
+      comment: "Montant total calculé automatiquement depuis les OrderItems",
     },
-    // Optionnel : adresse de livraison, date de livraison, etc.
   },
   {
     timestamps: true,
@@ -29,16 +30,26 @@ const Order = sequelize.define(
   }
 );
 
-const initializeOrderModel = async () => {
-  try {
-    await Order.sync();
-    console.log("✅ Table 'orders' synchronisée");
-  } catch (error) {
-    console.error("Erreur synchronisation table 'orders':", error);
+// Méthode pour calculer le total automatiquement
+Order.prototype.calculateTotal = async function () {
+  const OrderItem = require("./orderItem.model").OrderItem;
+
+  const items = await OrderItem.findAll({
+    where: { orderId: this.id },
+  });
+
+  const total = items.reduce(
+    (sum, item) => sum + parseFloat(item.totalPrice),
+    0
+  );
+
+  // Mettre à jour uniquement si le total a changé
+  if (Math.abs(this.total - total) > 0.01) {
+    // Comparaison avec tolérance pour les flottants
+    await this.update({ total }, { hooks: false }); // Éviter la boucle infinie
   }
+
+  return total;
 };
 
-module.exports = {
-  Order,
-  initializeOrderModel,
-};
+module.exports = { Order };

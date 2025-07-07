@@ -103,6 +103,37 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+exports.getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findByPk(id, {
+      attributes: { exclude: ["password"] },
+    });
+    if (!user) return res.status(404).json({ msg: "Utilisateur non trouvé" });
+
+    res.json(user);
+  } catch (err) {
+    console.error("Erreur récupération utilisateur:", err);
+    res.status(500).json({ msg: "Erreur serveur" });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id);
+    if (!user) return res.status(404).json({ msg: "Utilisateur non trouvé" });
+
+    await user.destroy();
+
+    res.json({ msg: "Utilisateur supprimé" });
+  } catch (err) {
+    console.error("Erreur suppression utilisateur:", err);
+    res.status(500).json({ msg: "Erreur serveur" });
+  }
+};
+
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
