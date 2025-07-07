@@ -1,10 +1,8 @@
-// ===== 2. APP.JS CORRIGÉ AVEC DEBUG =====
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const dotenv = require("dotenv");
-const listenForMessages = require("./utils/rabbitListener");
-
+const path = require("path");
 
 // CHARGER .env EN PREMIER
 dotenv.config();
@@ -49,9 +47,32 @@ app.get("/metrics", async (req, res) => {
 });
 
 // Middlewares
-app.use(helmet());
+// app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"], // 👉 autorise les scripts inline
+        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+        imgSrc: ["'self'", "data:", "blob:", "http://localhost:5001"],
+        connectSrc: ["'self'", "http://localhost:5001"],
+        fontSrc: ["'self'", "https:", "data:"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+  })
+);
+
 app.use(cors());
 app.use(express.json());
+// Sert les fichiers HTML/CSS/JS de ton frontend
+app.use(express.static(path.join(__dirname, "public")));
+
+// // NOUVEAU: Servir les images statiques
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// app.use("/uploads", express.static("uploads"));
 
 // Routes
 app.use("/api/products", productRoutes);
@@ -70,10 +91,30 @@ app.get("/health", (req, res) => {
     },
   });
 });
+// Toutes les routes autres que l'API → index.html
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
-// Middleware de gestion d'erreurs
+// Middleware de gestion d'erreurs globales
 app.use((err, req, res, next) => {
   console.error("Erreur serveur:", err.stack);
+
+  // Gestion spécifique des erreurs Multer
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res
+        .status(400)
+        .json({ error: "Fichier trop volumineux (max 5MB)" });
+    }
+    return res.status(400).json({ error: "Erreur d'upload: " + err.message });
+  }
+
+  // Gestion des erreurs de validation de fichier
+  if (err.message.includes("Seules les images sont autorisées")) {
+    return res.status(400).json({ error: err.message });
+  }
+
   res.status(500).json({ msg: "Erreur serveur", error: err.message });
 });
 
@@ -85,10 +126,12 @@ const startServer = async (retries = 5) => {
   for (let i = 0; i < retries; i++) {
     try {
       await initDatabase();
-    app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Product-service démarré sur http://localhost:${PORT}`);
-  listenForMessages(); // 🔁 Démarrer l'écoute RabbitMQ après lancement du serveur
-});
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`✅ Product-service démarré sur http://localhost:${PORT}`);
+        console.log(
+          `📁 Images accessibles sur http://localhost:${PORT}/uploads/`
+        );
+      });
       return;
     } catch (error) {
       console.error(`❌ Tentative ${i + 1}/${retries} échouée:`, error.message);

@@ -6,6 +6,10 @@ const helmet = require("helmet");
 const dotenv = require("dotenv");
 const client = require("prom-client");
 const { connectRabbitMQ } = require("./utils/messageBroker");
+const { initializeModels } = require("./models");
+const { connectDB } = require("./config/db");
+const orderRoutes = require("./routes/order.routes.js");
+
 
 
 // Charger .env dès le départ
@@ -20,9 +24,6 @@ console.log("DB_NAME:", process.env.DB_NAME);
 console.log("PORT:", process.env.PORT);
 console.log("===============================");
 
-const { connectDB } = require("./config/db");
-const { initializeOrderModel } = require("./models/order.model");
-const orderRoutes = require("./routes/order.routes.js");
 
 const app = express();
 
@@ -31,13 +32,14 @@ const initDatabase = async () => {
   try {
     console.log("🔄 Initialisation de la base de données...");
     await connectDB();
-    await initializeOrderModel();
+    await initializeModels();
     console.log("✅ Base de données initialisée");
   } catch (error) {
     console.error("❌ Erreur lors de l'initialisation de la DB:", error.message);
     throw error;
   }
 };
+
 
 // Prometheus métriques
 client.collectDefaultMetrics();
