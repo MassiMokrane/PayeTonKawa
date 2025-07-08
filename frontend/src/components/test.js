@@ -37,7 +37,6 @@ const Header = () => {
   );
 };
 
-export default Header;
 
 // components/common/Footer.js
 import React from 'react';
@@ -52,7 +51,6 @@ const Footer = () => {
   );
 };
 
-export default Footer;
 
 // components/common/Loading.js
 import React from 'react';
@@ -77,15 +75,15 @@ import { useAuth } from '../../context/AuthContext';
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const { user } = useAuth();
-
+  
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-
+  
   if (requireAdmin && !user.isAdmin) {
     return <Navigate to="/" replace />;
   }
-
+  
   return children;
 };
 
@@ -153,7 +151,7 @@ import { useAuth } from '../context/AuthContext';
 
 const Profile = () => {
   const { user } = useAuth();
-
+  
   return (
     <div className="profile">
       <h1>Mon Profil</h1>
@@ -176,4 +174,6 @@ const AdminDashboard = () => {
   );
 };
 
+export default Header;
+      export default Footer;
 export default AdminDashboard;
