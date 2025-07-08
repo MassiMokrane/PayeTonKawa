@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import Loading from "../components/common/Loading";
+import ProductService from "../services/productService";
+import ProductCard from "../components/products/ProductCard";
 
 const Menu = () => {
   const { user } = useAuth();
@@ -17,65 +19,9 @@ const Menu = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      // Simuler des données de produits (à remplacer par l'API produits)
-      const mockProducts = [
-        {
-          id: 1,
-          name: "Espresso",
-          description: "Café corsé et authentique",
-          price: 2.5,
-          category: "coffee",
-          image: "☕",
-          available: true,
-        },
-        {
-          id: 2,
-          name: "Cappuccino",
-          description: "Espresso avec mousse de lait onctueuse",
-          price: 3.5,
-          category: "coffee",
-          image: "☕",
-          available: true,
-        },
-        {
-          id: 3,
-          name: "Latte",
-          description: "Café au lait avec art latte",
-          price: 4.0,
-          category: "coffee",
-          image: "☕",
-          available: true,
-        },
-        {
-          id: 4,
-          name: "Croissant",
-          description: "Viennoiserie feuilletée et beurrée",
-          price: 2.0,
-          category: "pastry",
-          image: "🥐",
-          available: true,
-        },
-        {
-          id: 5,
-          name: "Muffin Myrtille",
-          description: "Muffin moelleux aux myrtilles fraîches",
-          price: 3.0,
-          category: "pastry",
-          image: "🧁",
-          available: true,
-        },
-        {
-          id: 6,
-          name: "Tarte aux Fruits",
-          description: "Tarte saisonnière aux fruits frais",
-          price: 4.5,
-          category: "dessert",
-          image: "🍰",
-          available: true,
-        },
-      ];
-
-      setProducts(mockProducts);
+      // Appel dynamique à l'API produits
+      const produits = await ProductService.getProducts();
+      setProducts(produits);
     } catch (error) {
       toast.error("Erreur lors du chargement des produits");
     } finally {
@@ -108,6 +54,10 @@ const Menu = () => {
     // Ici vous ajouteriez la logique du panier
     toast.success(`${product.name} ajouté au panier`);
   };
+
+  const PRODUCT_API_URL = process.env.REACT_APP_PRODUCT_API_URL || "http://localhost:5001";
+  const DEFAULT_IMAGE = "/vite.svg";
+  const getImageUrl = (imagePath) => imagePath ? `${PRODUCT_API_URL}${imagePath}` : DEFAULT_IMAGE;
 
   if (loading) {
     return <Loading message="Chargement du menu..." />;
@@ -152,36 +102,18 @@ const Menu = () => {
         </div>
 
         {/* Grille des produits */}
-        <div className="products-grid">
+        <div className="products-grid" style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+          gap: 0,
+          margin: 0,
+          padding: 0,
+          marginTop: "2rem"
+        }}>
           {filteredProducts.length > 0 ? (
             filteredProducts.map((product) => (
-              <div key={product.id} className="product-card">
-                <div className="product-image">
-                  <div className="product-icon">{product.image}</div>
-                  {!product.available && (
-                    <div className="unavailable-badge">Indisponible</div>
-                  )}
-                </div>
-
-                <div className="product-info">
-                  <h3 className="product-name">{product.name}</h3>
-                  <p className="product-description">{product.description}</p>
-                  <div className="product-price">
-                    {product.price.toFixed(2)} €
-                  </div>
-                </div>
-
-                <div className="product-actions">
-                  <button
-                    onClick={() => addToCart(product)}
-                    disabled={!product.available}
-                    className={`btn ${
-                      product.available ? "btn-primary" : "btn-disabled"
-                    }`}
-                  >
-                    {product.available ? "Ajouter au panier" : "Indisponible"}
-                  </button>
-                </div>
+              <div style={{ marginBottom: 24 }} key={product.id}>
+                <ProductCard product={product} onAddToCart={addToCart} />
               </div>
             ))
           ) : (

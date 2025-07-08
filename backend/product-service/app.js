@@ -48,30 +48,47 @@ app.get("/metrics", async (req, res) => {
 
 // Middlewares
 // app.use(helmet());
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"], // 👉 autorise les scripts inline
-        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
-        imgSrc: ["'self'", "data:", "blob:", "http://localhost:5001"],
-        connectSrc: ["'self'", "http://localhost:5001"],
-        fontSrc: ["'self'", "https:", "data:"],
-        objectSrc: ["'none'"],
-        upgradeInsecureRequests: [],
-      },
-    },
-  })
-);
+// app.use(
+//   helmet({
+//     contentSecurityPolicy: {
+//       directives: {
+//         defaultSrc: ["'self'"],
+//         scriptSrc: ["'self'", "'unsafe-inline'"], // 👉 autorise les scripts inline
+//         styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+//         imgSrc: [
+//           "'self'",
+//           "data:",
+//           "blob:",
+//           "http://localhost:5001",
+//           "http://localhost:3000",
+//           "http://localhost:3001"
+//         ],
+//         connectSrc: [
+//           "'self'",
+//           "http://localhost:5001",
+//           "http://localhost:3000",
+//           "http://localhost:3001"
+//         ],
+//         fontSrc: ["'self'", "https:", "data:"],
+//         objectSrc: ["'none'"],
+//         upgradeInsecureRequests: [],
+//       },
+//     },
+//   })
+// );
 
 app.use(cors());
 app.use(express.json());
 // Sert les fichiers HTML/CSS/JS de ton frontend
 app.use(express.static(path.join(__dirname, "public")));
 
-// // NOUVEAU: Servir les images statiques
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Ajout du header Cross-Origin-Resource-Policy pour les images
+app.use("/uploads", (req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  next();
+}, express.static(path.join(__dirname, "uploads")));
 // app.use("/uploads", express.static("uploads"));
 
 // Routes
