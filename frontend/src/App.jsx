@@ -23,8 +23,11 @@ import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
 
 // Admin Components
+// Admin Pages
 import AdminDashboard from "./components/admin/AdminDashboard";
-
+import ProductManager from "./components/admin/ProductManager";
+import OrderManager from "./components/admin/OrderManager";
+import UserManager from "./components/admin/UserManager";
 // Protected Route Component
 import ProtectedRoute from "./components/common/ProtectedRoute";
 
@@ -45,11 +48,11 @@ function App() {
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
 
-              {/* Routes d'authentification */}
+              {/* Authentification */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
 
-              {/* Routes protégées */}
+              {/* Profil utilisateur */}
               <Route
                 path="/profile"
                 element={
@@ -59,12 +62,36 @@ function App() {
                 }
               />
 
-              {/* Routes admin */}
+              {/* Admin */}
               <Route
                 path="/admin"
                 element={
                   <ProtectedRoute requireAdmin={true}>
                     <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/products"
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <ProductManager />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/orders"
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <OrderManager />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <UserManager />
                   </ProtectedRoute>
                 }
               />

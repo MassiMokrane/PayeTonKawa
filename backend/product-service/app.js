@@ -53,10 +53,24 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"], // 👉 autorise les scripts inline
+        scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https:"],
-        imgSrc: ["'self'", "data:", "blob:", "http://localhost:5001"],
-        connectSrc: ["'self'", "http://localhost:5001"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "blob:",
+          "http://localhost:5001", // ← ton backend
+          "http://localhost:3000",
+          "http://localhost:3001",
+          // ← ton frontend React
+        ],
+        connectSrc: [
+          "'self'",
+          "http://localhost:5001",
+          "http://localhost:3000",
+          "http://localhost:3001",
+          // ← ton frontend React
+        ],
         fontSrc: ["'self'", "https:", "data:"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
