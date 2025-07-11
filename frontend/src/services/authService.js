@@ -5,13 +5,14 @@ class AuthService {
   async login(email, password) {
     try {
       const response = await authAPI.post("/login", { email, password });
-      const { token, role } = response.data;
+      const { token, role, id } = response.data; // 👈 récupère aussi id
 
-      // Stocker le token et le rôle dans le localStorage
+      // Stocker dans le localStorage
       localStorage.setItem("token", token);
       localStorage.setItem("userRole", role);
+      localStorage.setItem("userId", id); // 👈 obligatoire pour getUserOrders
 
-      return { token, role };
+      return { token, role, id };
     } catch (error) {
       throw new Error(error.response?.data?.msg || "Erreur de connexion");
     }
@@ -31,6 +32,7 @@ class AuthService {
   logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("userRole");
+    localStorage.removeItem("userId"); // 👈 nettoyage du userId aussi
   }
 
   // Vérifier si l'utilisateur est connecté
@@ -43,17 +45,17 @@ class AuthService {
     return localStorage.getItem("userRole");
   }
 
-  // Vérifier si l'utilisateur est admin
-  isAdmin() {
-    return this.getUserRole() === "admin";
-  }
-
   // Obtenir le token
   getToken() {
     return localStorage.getItem("token");
   }
 
-  // Récupérer tous les utilisateurs (admin seulement)
+  // Facultatif : méthode pour obtenir l’ID utilisateur
+  getUserId() {
+    return localStorage.getItem("userId");
+  }
+
+  // Admin : récupérer tous les utilisateurs
   async getUsers() {
     try {
       const response = await authAPI.get("/users");
@@ -65,7 +67,7 @@ class AuthService {
     }
   }
 
-  // Récupérer un utilisateur par ID
+  // Admin : récupérer un utilisateur par ID
   async getUserById(id) {
     try {
       const response = await authAPI.get(`/users/${id}`);
@@ -77,7 +79,7 @@ class AuthService {
     }
   }
 
-  // Mettre à jour un utilisateur
+  // Admin : mettre à jour un utilisateur
   async updateUser(id, userData) {
     try {
       const response = await authAPI.put(`/users/${id}`, userData);
@@ -89,7 +91,7 @@ class AuthService {
     }
   }
 
-  // Supprimer un utilisateur
+  // Admin : supprimer un utilisateur
   async deleteUser(id) {
     try {
       const response = await authAPI.delete(`/users/${id}`);

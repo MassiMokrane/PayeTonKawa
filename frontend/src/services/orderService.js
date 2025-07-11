@@ -107,6 +107,12 @@ class OrderService {
       );
     }
   }
+  async getUserOrders(userId) {
+    // ⬅️ nécessite id
+    if (!userId) throw new Error("ID utilisateur manquant");
+    const response = await orderAPI.get(`/user/${userId}`);
+    return response.data;
+  }
 
   // Récupérer toutes les commandes (admin)
   async getAllOrders() {
@@ -120,17 +126,11 @@ class OrderService {
     }
   }
 
-  // Récupérer les commandes de l'utilisateur connecté
-  async getUserOrders() {
-    try {
-      const response = await orderAPI.get("/user");
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        error.response?.data?.error ||
-          "Erreur récupération commandes utilisateur"
-      );
-    }
+  async getUserOrders(userId) {
+    if (!userId) throw new Error("ID utilisateur manquant");
+
+    const response = await orderAPI.get(`/user/${userId}`);
+    return response.data;
   }
 
   // Récupérer une commande par ID

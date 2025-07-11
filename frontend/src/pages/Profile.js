@@ -2,64 +2,98 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import Loading from "../components/common/Loading";
+import userService from "../services/userService";
+import orderService from "../services/orderService";
 
 const Profile = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState({
-    nom: "",
-    prenom: "",
-    email: "",
-    role: "",
-  });
+  const [userData, setUserData] = useState(null);
+  const [formData, setFormData] = useState({ nom: "", prenom: "", email: "" });
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    nom: "",
-    prenom: "",
-    email: "",
+  const [stats, setStats] = useState({
+    commandes: 0,
+    favori: "N/A",
+    points: 0,
   });
 
+  // Charger les infos utilisateur
   useEffect(() => {
-    // Simuler le chargement des données utilisateur
-    setTimeout(() => {
-      const mockUserData = {
-        id: 1,
-        nom: "Dupont",
-        prenom: "Jean",
-        email: user?.isAdmin ? "admin@test.com" : "client@test.com",
-        role: user?.role || "client",
-      };
-      setUserData(mockUserData);
-      setFormData({
-        nom: mockUserData.nom,
-        prenom: mockUserData.prenom,
-        email: mockUserData.email,
-      });
-      setLoading(false);
-    }, 1000);
+    const fetchUser = async () => {
+      if (!user?.id) return;
+
+      try {
+        const data = await userService.getUserById(user.id);
+        setUserData(data);
+        setFormData({
+          nom: data.nom,
+          prenom: data.prenom,
+          email: data.email,
+        });
+      } catch (error) {
+        toast.error("Impossible de charger les données utilisateur.");
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
   }, [user]);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  // Charger les statistiques
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user?.id) return;
+
+      try {
+        const orders = await orderService.getUserOrders(user.id);
+        const productCounts = {};
+
+        orders.forEach((order) => {
+          order.items.forEach((item) => {
+            const name = item.name || "Produit";
+            productCounts[name] = (productCounts[name] || 0) + item.quantity;
+          });
+        });
+
+        const commandes = orders.length;
+        const points = commandes * 5;
+
+        let favori = "Aucun";
+        if (Object.keys(productCounts).length > 0) {
+          favori = Object.entries(productCounts).sort(
+            (a, b) => b[1] - a[1]
+          )[0][0];
+        }
+
+        setStats({ commandes, favori, points });
+      } catch (err) {
+        console.error("Erreur statistiques utilisateur:", err);
+      }
+    };
+
+    fetchStats();
+  }, [user]);
+
+  const handleChange = (e) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // Simulation de mise à jour
-    setTimeout(() => {
-      setUserData({
-        ...userData,
-        ...formData,
-      });
-      setIsEditing(false);
-      setLoading(false);
+    try {
+      await userService.updateUser(user.id, formData);
+      setUserData({ ...userData, ...formData });
       toast.success("Profil mis à jour avec succès !");
-    }, 1000);
+      setIsEditing(false);
+    } catch (error) {
+      toast.error("Échec de la mise à jour du profil.");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -71,9 +105,8 @@ const Profile = () => {
     setIsEditing(false);
   };
 
-  if (loading) {
+  if (loading || !userData)
     return <Loading message="Chargement du profil..." />;
-  }
 
   return (
     <div className="profile">
@@ -84,10 +117,12 @@ const Profile = () => {
         </div>
 
         <div className="profile-content">
-          {/* Profile Info */}
+          {/* Informations de base */}
           <div className="profile-card">
             <div className="profile-avatar">
-              <span className="avatar-icon">{user?.isAdmin ? "👨‍💼" : "👤"}</span>
+              <span className="avatar-icon">
+                {userData.role === "admin" ? "👨‍💼" : "👤"}
+              </span>
             </div>
 
             <div className="profile-info">
@@ -110,7 +145,7 @@ const Profile = () => {
             )}
           </div>
 
-          {/* Edit Form */}
+          {/* Formulaire d'édition */}
           {isEditing && (
             <div className="profile-form">
               <h3>Modifier les informations</h3>
@@ -130,7 +165,6 @@ const Profile = () => {
                       required
                     />
                   </div>
-
                   <div className="form-group">
                     <label htmlFor="prenom" className="form-label">
                       Prénom
@@ -166,7 +200,7 @@ const Profile = () => {
                   <button
                     type="button"
                     onClick={handleCancel}
-                    className="btn btn-secondary"
+                    className="btn btn-outline"
                   >
                     Annuler
                   </button>
@@ -178,7 +212,7 @@ const Profile = () => {
             </div>
           )}
 
-          {/* Stats Section */}
+          {/* Statistiques utilisateur */}
           <div className="profile-stats">
             <h3>Statistiques</h3>
             <div className="stats-grid">
@@ -186,21 +220,21 @@ const Profile = () => {
                 <div className="stat-icon">📦</div>
                 <div className="stat-content">
                   <h4>Commandes</h4>
-                  <p className="stat-number">12</p>
+                  <p className="stat-number">{stats.commandes}</p>
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-icon">⭐</div>
                 <div className="stat-content">
                   <h4>Points fidélité</h4>
-                  <p className="stat-number">248</p>
+                  <p className="stat-number">{stats.points}</p>
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-icon">🎯</div>
                 <div className="stat-content">
                   <h4>Favori</h4>
-                  <p className="stat-number">Cappuccino</p>
+                  <p className="stat-number">{stats.favori}</p>
                 </div>
               </div>
             </div>
