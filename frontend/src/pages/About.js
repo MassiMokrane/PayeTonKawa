@@ -10,8 +10,8 @@ const About = () => {
           <div className="about-hero-content">
             <h1 className="page-title">À Propos de Café Délice</h1>
             <p className="page-subtitle">
-              Une passion pour le café d'exception et l'art de vivre à la
-              française
+              Votre grossiste spécialisé dans la distribution de café en poudre
+              premium depuis 2020
             </p>
           </div>
         </section>
@@ -23,22 +23,23 @@ const About = () => {
               <h2>Notre Histoire</h2>
               <p>
                 Fondé en 2020 par Marie et Pierre Dubois, Café Délice est né
-                d'une passion commune pour le café d'exception et l'hospitalité
-                française. Après avoir voyagé à travers le monde pour découvrir
-                les meilleurs terroirs de café, nous avons décidé de créer un
-                lieu unique où tradition et innovation se rencontrent.
+                d'une passion pour l'excellence et d'une vision claire :
+                démocratiser l'accès aux meilleurs cafés du monde. Après des
+                années d'expérience dans l'import-export, nous avons créé cette
+                entreprise pour connecter directement les producteurs aux
+                consommateurs.
               </p>
               <p>
-                Notre engagement envers la qualité nous pousse à sélectionner
-                rigoureusement chaque grain, à travailler directement avec les
-                producteurs et à torréfier nos cafés de manière artisanale.
-                Chaque tasse servie chez Café Délice raconte une histoire, celle
-                d'un terroir, d'un producteur et de notre savoir-faire.
+                Aujourd'hui, nous sommes un acteur majeur de la distribution de
+                café en poudre, proposant plus de 80 variétés différentes
+                provenant de 15 pays. Notre expertise nous permet de garantir
+                une qualité constante et des prix compétitifs pour tous nos
+                clients, qu'ils soient professionnels ou particuliers.
               </p>
             </div>
             <div className="story-image">
               <div className="image-placeholder">
-                <div className="coffee-beans">☕</div>
+                <div className="coffee-beans">📦</div>
                 <p>Nos fondateurs Marie & Pierre</p>
               </div>
             </div>
@@ -51,38 +52,39 @@ const About = () => {
           <div className="values-grid">
             <div className="value-card">
               <div className="value-icon">🌱</div>
-              <h3>Durabilité</h3>
+              <h3>Commerce Équitable</h3>
               <p>
-                Nous nous engageons pour un commerce équitable et des pratiques
-                respectueuses de l'environnement. Nos partenaires producteurs
-                sont sélectionnés pour leur engagement écologique.
+                Nous travaillons directement avec les producteurs pour garantir
+                des prix justes et des conditions de travail éthiques. Nos
+                partenaires sont sélectionnés selon des critères stricts de
+                développement durable.
               </p>
             </div>
             <div className="value-card">
               <div className="value-icon">⭐</div>
-              <h3>Qualité</h3>
+              <h3>Qualité Premium</h3>
               <p>
-                Seuls les meilleurs grains sont sélectionnés pour nos mélanges.
-                Chaque étape, de la sélection à la torréfaction, est réalisée
-                avec la plus grande attention.
+                Chaque lot de café est rigoureusement testé et certifié. Nous
+                contrôlons la chaîne de production de la plantation jusqu'à la
+                livraison pour maintenir des standards élevés.
               </p>
             </div>
             <div className="value-card">
-              <div className="value-icon">🤝</div>
-              <h3>Convivialité</h3>
+              <div className="value-icon">🚚</div>
+              <h3>Service Client</h3>
               <p>
-                Café Délice est un lieu de rencontre et de partage. Nous créons
-                une atmosphère chaleureuse où chacun se sent chez soi et peut
-                savourer un moment de détente.
+                Livraisons rapides, conditionnement sur mesure, conseils
+                personnalisés. Notre équipe commerciale vous accompagne pour
+                trouver les cafés parfaits selon vos besoins.
               </p>
             </div>
             <div className="value-card">
-              <div className="value-icon">🎯</div>
-              <h3>Excellence</h3>
+              <div className="value-icon">💰</div>
+              <h3>Prix Compétitifs</h3>
               <p>
-                L'excellence guide chacune de nos actions. De la préparation de
-                nos boissons à l'accueil de nos clients, nous visons la
-                perfection dans chaque détail.
+                Grâce à nos volumes d'achat et nos relations directes avec les
+                producteurs, nous proposons des tarifs dégressifs attractifs
+                pour tous types de commandes.
               </p>
             </div>
           </div>
@@ -95,38 +97,39 @@ const About = () => {
             <div className="team-member">
               <div className="member-photo">👩‍💼</div>
               <h3>Marie Dubois</h3>
-              <p className="member-role">Co-fondatrice & Directrice</p>
+              <p className="member-role">Co-fondatrice & Directrice Générale</p>
               <p className="member-description">
-                Experte en torréfaction et passionnée de café depuis 15 ans.
-                Marie supervise la sélection des grains et la formation de
-                l'équipe.
-              </p>
-            </div>
-            <div className="team-member">
-              <div className="member-photo">👨‍🍳</div>
-              <h3>Pierre Dubois</h3>
-              <p className="member-role">Co-fondateur & Chef Barista</p>
-              <p className="member-description">
-                Ancien champion national de Latte Art, Pierre forme nos baristas
-                et développe nos recettes signature.
-              </p>
-            </div>
-            <div className="team-member">
-              <div className="member-photo">👩‍🍳</div>
-              <h3>Sophie Martin</h3>
-              <p className="member-role">Chef Pâtissière</p>
-              <p className="member-description">
-                Diplômée des meilleurs établissements parisiens, Sophie crée nos
-                pâtisseries et desserts maison quotidiennement.
+                Spécialiste en sourcing international avec 15 ans d'expérience.
+                Marie supervise la sélection des fournisseurs et la qualité des
+                produits.
               </p>
             </div>
             <div className="team-member">
               <div className="member-photo">👨‍💼</div>
-              <h3>Lucas Bernard</h3>
-              <p className="member-role">Responsable Commercial</p>
+              <h3>Pierre Dubois</h3>
+              <p className="member-role">Co-fondateur & Directeur Commercial</p>
               <p className="member-description">
-                Spécialiste des relations producteurs, Lucas voyage
-                régulièrement pour dénicher les meilleurs cafés du monde.
+                Expert en torréfaction et développement commercial. Pierre gère
+                les relations clients et développe notre réseau de distribution.
+              </p>
+            </div>
+            <div className="team-member">
+              <div className="member-photo">👨‍🔬</div>
+              <h3>Antoine Moreau</h3>
+              <p className="member-role">Responsable Qualité</p>
+              <p className="member-description">
+                Ingénieur agronome spécialisé dans l'analyse sensorielle.
+                Antoine supervise tous les contrôles qualité et les
+                certifications.
+              </p>
+            </div>
+            <div className="team-member">
+              <div className="member-photo">👩‍💼</div>
+              <h3>Sophie Leroy</h3>
+              <p className="member-role">Responsable Logistique</p>
+              <p className="member-description">
+                Experte en supply chain internationale. Sophie coordonne les
+                expéditions et optimise nos processus de distribution.
               </p>
             </div>
           </div>
@@ -138,35 +141,37 @@ const About = () => {
           <div className="process-steps">
             <div className="process-step">
               <div className="step-number">1</div>
-              <h3>Sélection</h3>
+              <h3>Sourcing</h3>
               <p>
-                Nous visitons les plantations et sélectionnons les meilleurs
-                grains selon des critères stricts de qualité et d'éthique.
+                Nous sélectionnons nos fournisseurs directement dans les pays
+                producteurs en privilégiant qualité, traçabilité et commerce
+                équitable.
               </p>
             </div>
             <div className="process-step">
               <div className="step-number">2</div>
               <h3>Torréfaction</h3>
               <p>
-                Torréfaction artisanale en petites quantités pour préserver les
-                arômes et révéler le caractère unique de chaque origine.
+                Torréfaction artisanale dans notre atelier selon des profils
+                spécifiques pour chaque origine, préservant les arômes naturels
+                du café.
               </p>
             </div>
             <div className="process-step">
               <div className="step-number">3</div>
-              <h3>Préparation</h3>
+              <h3>Conditionnement</h3>
               <p>
-                Nos baristas experts préparent chaque boisson avec passion et
-                précision, en respectant les traditions et techniques
-                spécifiques.
+                Broyage et conditionnement sous vide dans des emballages
+                étanches pour préserver la fraîcheur. Formats disponibles de
+                250g à 25kg.
               </p>
             </div>
             <div className="process-step">
               <div className="step-number">4</div>
-              <h3>Dégustation</h3>
+              <h3>Distribution</h3>
               <p>
-                Savourez votre café dans notre cadre chaleureux, accompagné de
-                nos pâtisseries artisanales préparées sur place.
+                Livraison rapide via notre réseau logistique optimisé.
+                Expédition sous 24h pour les commandes passées avant 14h.
               </p>
             </div>
           </div>
@@ -175,17 +180,17 @@ const About = () => {
         {/* Section CTA */}
         <section className="about-cta">
           <div className="cta-content">
-            <h2>Venez Nous Rencontrer</h2>
+            <h2>Prêt à Commander ?</h2>
             <p>
-              Nous serions ravis de vous accueillir dans notre établissement et
-              de vous faire découvrir notre passion pour le café.
+              Découvrez notre catalogue complet et bénéficiez de nos tarifs
+              dégressifs pour vos commandes en gros.
             </p>
             <div className="cta-buttons">
               <Link to="/contact" className="btn btn-primary">
-                Nous Contacter
+                Demander un Devis
               </Link>
               <Link to="/menu" className="btn btn-outline">
-                Découvrir Notre Menu
+                Voir le Catalogue
               </Link>
             </div>
           </div>
