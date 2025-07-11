@@ -1,424 +1,3 @@
-// // import React, { createContext, useContext, useState, useEffect } from "react";
-// // import orderService from "../services/orderService";
-
-// // const CartContext = createContext();
-
-// // export const useCart = () => {
-// //   const context = useContext(CartContext);
-// //   if (!context) {
-// //     throw new Error("useCart must be used within a CartProvider");
-// //   }
-// //   return context;
-// // };
-
-// // export const CartProvider = ({ children }) => {
-// //   const [cartItems, setCartItems] = useState([]);
-// //   const [isLoading, setIsLoading] = useState(false);
-
-// //   // Charger le panier depuis localStorage au démarrage
-// //   useEffect(() => {
-// //     const savedCart = localStorage.getItem("cart");
-// //     if (savedCart) {
-// //       setCartItems(JSON.parse(savedCart));
-// //     }
-// //   }, []);
-
-// //   // Sauvegarder le panier dans localStorage à chaque changement
-// //   useEffect(() => {
-// //     localStorage.setItem("cart", JSON.stringify(cartItems));
-// //   }, [cartItems]);
-
-// //   // Ajouter un produit au panier
-// //   const addToCart = (product, quantity = 1) => {
-// //     setCartItems((prevItems) => {
-// //       const existingItem = prevItems.find((item) => item.id === product.id);
-
-// //       if (existingItem) {
-// //         // Si le produit existe déjà, augmenter la quantité
-// //         return prevItems.map((item) =>
-// //           item.id === product.id
-// //             ? { ...item, quantity: item.quantity + quantity }
-// //             : item
-// //         );
-// //       } else {
-// //         // Sinon, ajouter le nouveau produit
-// //         return [...prevItems, { ...product, quantity }];
-// //       }
-// //     });
-// //   };
-
-// //   // Supprimer un produit du panier
-// //   const removeFromCart = (productId) => {
-// //     setCartItems((prevItems) =>
-// //       prevItems.filter((item) => item.id !== productId)
-// //     );
-// //   };
-
-// //   // Mettre à jour la quantité d'un produit
-// //   const updateQuantity = (productId, quantity) => {
-// //     if (quantity <= 0) {
-// //       removeFromCart(productId);
-// //       return;
-// //     }
-
-// //     setCartItems((prevItems) =>
-// //       prevItems.map((item) =>
-// //         item.id === productId ? { ...item, quantity } : item
-// //       )
-// //     );
-// //   };
-
-// //   // Vider le panier
-// //   const clearCart = () => {
-// //     setCartItems([]);
-// //     localStorage.removeItem("cart");
-// //   };
-
-// //   // Calculer le nombre total d'articles
-// //   const getCartCount = () => {
-// //     return cartItems.reduce((total, item) => total + item.quantity, 0);
-// //   };
-
-// //   // Calculer le total du panier
-// //   const getCartTotal = () => {
-// //     return orderService.calculateCartTotal(cartItems);
-// //   };
-
-// //   // Finaliser la commande
-// //   const checkout = async (customerInfo) => {
-// //     setIsLoading(true);
-// //     try {
-// //       const orderData = {
-// //         items: cartItems,
-// //         total: getCartTotal(),
-// //         customerInfo,
-// //         status: "pending",
-// //       };
-
-// //       const result = await orderService.createOrder(orderData);
-// //       clearCart();
-// //       return result;
-// //     } catch (error) {
-// //       throw error;
-// //     } finally {
-// //       setIsLoading(false);
-// //     }
-// //   };
-
-// //   const value = {
-// //     cartItems,
-// //     addToCart,
-// //     removeFromCart,
-// //     updateQuantity,
-// //     clearCart,
-// //     getCartCount,
-// //     getCartTotal,
-// //     checkout,
-// //     isLoading,
-// //   };
-
-// //   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
-// // };
-// import React, { createContext, useContext, useState, useEffect } from "react";
-// import orderService from "../services/orderService";
-
-// const CartContext = createContext();
-
-// export const useCart = () => {
-//   const context = useContext(CartContext);
-//   if (!context) {
-//     throw new Error("useCart must be used within a CartProvider");
-//   }
-//   return context;
-// };
-
-// export const CartProvider = ({ children }) => {
-//   const [cartItems, setCartItems] = useState([]);
-//   const [isLoading, setIsLoading] = useState(false);
-
-//   // Charger le panier depuis localStorage au démarrage
-//   useEffect(() => {
-//     try {
-//       const savedCart = localStorage.getItem("cart");
-//       if (savedCart) {
-//         const parsedCart = JSON.parse(savedCart);
-//         if (Array.isArray(parsedCart)) {
-//           setCartItems(parsedCart);
-//         }
-//       }
-//     } catch (error) {
-//       console.warn("Erreur lors du chargement du panier:", error);
-//       // En cas d'erreur, on nettoie le localStorage
-//       localStorage.removeItem("cart");
-//     }
-//   }, []);
-
-//   // Sauvegarder le panier dans localStorage à chaque changement
-//   useEffect(() => {
-//     try {
-//       localStorage.setItem("cart", JSON.stringify(cartItems));
-//     } catch (error) {
-//       console.warn("Erreur lors de la sauvegarde du panier:", error);
-//     }
-//   }, [cartItems]);
-
-//   // Ajouter un produit au panier
-//   const addToCart = (product, quantity = 1) => {
-//     if (!product || !product.id) {
-//       console.error("Produit invalide:", product);
-//       return;
-//     }
-
-//     setCartItems((prevItems) => {
-//       const existingItem = prevItems.find((item) => item.id === product.id);
-
-//       if (existingItem) {
-//         // Si le produit existe déjà, augmenter la quantité
-//         return prevItems.map((item) =>
-//           item.id === product.id
-//             ? { ...item, quantity: item.quantity + quantity }
-//             : item
-//         );
-//       } else {
-//         // Sinon, ajouter le nouveau produit
-//         return [...prevItems, { ...product, quantity }];
-//       }
-//     });
-//   };
-
-//   // Supprimer un produit du panier
-//   const removeFromCart = (productId) => {
-//     setCartItems((prevItems) =>
-//       prevItems.filter((item) => item.id !== productId)
-//     );
-//   };
-
-//   // Mettre à jour la quantité d'un produit
-//   const updateQuantity = (productId, quantity) => {
-//     if (quantity <= 0) {
-//       removeFromCart(productId);
-//       return;
-//     }
-
-//     setCartItems((prevItems) =>
-//       prevItems.map((item) =>
-//         item.id === productId ? { ...item, quantity } : item
-//       )
-//     );
-//   };
-
-//   // Vider le panier
-//   const clearCart = () => {
-//     setCartItems([]);
-//     try {
-//       localStorage.removeItem("cart");
-//     } catch (error) {
-//       console.warn("Erreur lors de la suppression du panier:", error);
-//     }
-//   };
-
-//   // Calculer le nombre total d'articles
-//   const getCartCount = () => {
-//     return cartItems.reduce((total, item) => total + item.quantity, 0);
-//   };
-
-//   // Calculer le total du panier
-//   const getCartTotal = () => {
-//     return orderService.calculateCartTotal(cartItems);
-//   };
-
-//   // Finaliser la commande
-//   const checkout = async (customerInfo) => {
-//     if (!customerInfo) {
-//       throw new Error("Informations client manquantes");
-//     }
-
-//     setIsLoading(true);
-//     try {
-//       const orderData = {
-//         items: cartItems,
-//         total: getCartTotal(),
-//         customerInfo,
-//         status: "pending",
-//       };
-
-//       const result = await orderService.createOrder(orderData);
-//       clearCart();
-//       return result;
-//     } catch (error) {
-//       console.error("Erreur lors de la commande:", error);
-//       throw error;
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
-
-//   const value = {
-//     cartItems,
-//     addToCart,
-//     removeFromCart,
-//     updateQuantity,
-//     clearCart,
-//     getCartCount,
-//     getCartTotal,
-//     checkout,
-//     isLoading,
-//   };
-
-//   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
-// };
-// import React, { createContext, useContext, useState, useEffect } from "react";
-// import orderService from "../services/orderService";
-
-// const CartContext = createContext();
-
-// export const useCart = () => {
-//   const context = useContext(CartContext);
-//   if (!context) {
-//     throw new Error("useCart must be used within a CartProvider");
-//   }
-//   return context;
-// };
-
-// export const CartProvider = ({ children }) => {
-//   const [cartItems, setCartItems] = useState([]);
-//   const [isLoading, setIsLoading] = useState(false);
-
-//   // Charger le panier depuis localStorage au démarrage
-//   useEffect(() => {
-//     try {
-//       const savedCart = localStorage.getItem("cart");
-//       if (savedCart) {
-//         const parsedCart = JSON.parse(savedCart);
-//         if (Array.isArray(parsedCart)) {
-//           setCartItems(parsedCart);
-//         }
-//       }
-//     } catch (error) {
-//       console.warn("Erreur lors du chargement du panier:", error);
-//       // En cas d'erreur, on nettoie le localStorage
-//       localStorage.removeItem("cart");
-//     }
-//   }, []);
-
-//   // Sauvegarder le panier dans localStorage à chaque changement
-//   useEffect(() => {
-//     try {
-//       localStorage.setItem("cart", JSON.stringify(cartItems));
-//     } catch (error) {
-//       console.warn("Erreur lors de la sauvegarde du panier:", error);
-//     }
-//   }, [cartItems]);
-
-//   // Ajouter un produit au panier
-//   const addToCart = (product, quantity = 1) => {
-//     if (!product || !product.id) {
-//       console.error("Produit invalide:", product);
-//       return;
-//     }
-
-//     setCartItems((prevItems) => {
-//       const existingItem = prevItems.find((item) => item.id === product.id);
-
-//       if (existingItem) {
-//         // Si le produit existe déjà, augmenter la quantité
-//         return prevItems.map((item) =>
-//           item.id === product.id
-//             ? { ...item, quantity: item.quantity + quantity }
-//             : item
-//         );
-//       } else {
-//         // Sinon, ajouter le nouveau produit
-//         return [...prevItems, { ...product, quantity }];
-//       }
-//     });
-//   };
-
-//   // Supprimer un produit du panier
-//   const removeFromCart = (productId) => {
-//     setCartItems((prevItems) =>
-//       prevItems.filter((item) => item.id !== productId)
-//     );
-//   };
-
-//   // Mettre à jour la quantité d'un produit
-//   const updateQuantity = (productId, quantity) => {
-//     if (quantity <= 0) {
-//       removeFromCart(productId);
-//       return;
-//     }
-
-//     setCartItems((prevItems) =>
-//       prevItems.map((item) =>
-//         item.id === productId ? { ...item, quantity } : item
-//       )
-//     );
-//   };
-
-//   // Vider le panier
-//   const clearCart = () => {
-//     setCartItems([]);
-//     try {
-//       localStorage.removeItem("cart");
-//     } catch (error) {
-//       console.warn("Erreur lors de la suppression du panier:", error);
-//     }
-//   };
-
-//   // Calculer le nombre total d'articles
-//   const getCartCount = () => {
-//     return cartItems.reduce((total, item) => total + item.quantity, 0);
-//   };
-
-//   // Calculer le total du panier
-//   const getCartTotal = () => {
-//     return orderService.calculateCartTotal(cartItems);
-//   };
-
-//   // Finaliser la commande (version simplifiée sans informations client)
-//   const checkout = async () => {
-//     if (cartItems.length === 0) {
-//       throw new Error("Panier vide");
-//     }
-
-//     setIsLoading(true);
-//     try {
-//       // Préparer les données pour le backend
-//       const orderData = {
-//         userId: 1, // ID utilisateur temporaire - à remplacer par l'ID réel de l'utilisateur connecté
-//         items: cartItems.map((item) => ({
-//           productId: item.id,
-//           quantity: item.quantity,
-//         })),
-//       };
-
-//       console.log("Données envoyées au backend:", orderData);
-
-//       const result = await orderService.createOrder(orderData);
-//       clearCart();
-//       return result;
-//     } catch (error) {
-//       console.error("Erreur lors de la commande:", error);
-//       throw error;
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
-
-//   const value = {
-//     cartItems,
-//     addToCart,
-//     removeFromCart,
-//     updateQuantity,
-//     clearCart,
-//     getCartCount,
-//     getCartTotal,
-//     checkout,
-//     isLoading,
-//   };
-
-//   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
-// };
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import productService from "../services/productService";
@@ -442,49 +21,214 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     const storedCart = localStorage.getItem("cart");
     if (storedCart) {
-      setCartItems(JSON.parse(storedCart));
+      try {
+        setCartItems(JSON.parse(storedCart));
+      } catch (error) {
+        console.warn("Erreur lors du chargement du panier:", error);
+        localStorage.removeItem("cart");
+      }
     }
   }, []);
 
   // Sauvegarder le panier dans localStorage à chaque changement
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cartItems));
+    try {
+      localStorage.setItem("cart", JSON.stringify(cartItems));
+    } catch (error) {
+      console.warn("Erreur lors de la sauvegarde du panier:", error);
+    }
   }, [cartItems]);
 
-  const addToCart = (product) => {
-    const existing = cartItems.find((item) => item.id === product.id);
-    if (existing) {
-      updateQuantity(product.id, existing.quantity + 1);
-    } else {
-      setCartItems([...cartItems, { ...product, quantity: 1 }]);
+  // Ajouter un produit au panier
+  const addToCart = async (product, quantity = 1) => {
+    if (!product || !product.id) {
+      console.error("Produit invalide:", product);
+      return;
     }
-    toast.success(`${product.name} ajouté au panier`);
+
+    try {
+      // Récupérer les informations complètes du produit depuis l'API
+      const fullProduct = await productService.getProductById(product.id);
+
+      if (!productService.isProductAvailable(fullProduct)) {
+        toast.error("Ce produit n'est plus disponible");
+        return;
+      }
+
+      setCartItems((prevItems) => {
+        const existingItem = prevItems.find((item) => item.id === product.id);
+
+        if (existingItem) {
+          const newQuantity = existingItem.quantity + quantity;
+
+          // Vérifier si la nouvelle quantité ne dépasse pas le stock
+          if (newQuantity > fullProduct.quantity) {
+            toast.warning(
+              `Stock maximum: ${fullProduct.quantity}. Quantité ajustée.`
+            );
+            return prevItems.map((item) =>
+              item.id === product.id
+                ? {
+                    ...item,
+                    quantity: fullProduct.quantity,
+                    maxQuantity: fullProduct.quantity,
+                  }
+                : item
+            );
+          }
+
+          return prevItems.map((item) =>
+            item.id === product.id
+              ? {
+                  ...item,
+                  quantity: newQuantity,
+                  maxQuantity: fullProduct.quantity,
+                }
+              : item
+          );
+        } else {
+          // Vérifier si la quantité demandée ne dépasse pas le stock
+          const validQuantity = Math.min(quantity, fullProduct.quantity);
+
+          if (validQuantity < quantity) {
+            toast.warning(
+              `Stock maximum: ${fullProduct.quantity}. Quantité ajustée.`
+            );
+          }
+
+          return [
+            ...prevItems,
+            {
+              ...fullProduct,
+              quantity: validQuantity,
+              maxQuantity: fullProduct.quantity,
+            },
+          ];
+        }
+      });
+    } catch (error) {
+      console.error("Erreur lors de l'ajout au panier:", error);
+      toast.error("Erreur lors de l'ajout au panier");
+    }
   };
 
+  // Supprimer un produit du panier
   const removeFromCart = (productId) => {
-    const updated = cartItems.filter((item) => item.id !== productId);
-    setCartItems(updated);
-  };
-
-  const updateQuantity = (productId, quantity) => {
-    const updated = cartItems.map((item) =>
-      item.id === productId ? { ...item, quantity } : item
+    setCartItems((prevItems) =>
+      prevItems.filter((item) => item.id !== productId)
     );
-    setCartItems(updated);
   };
 
+  // Mettre à jour la quantité d'un produit avec validation du stock
+  const updateQuantity = async (productId, quantity) => {
+    if (quantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+
+    try {
+      // Récupérer les informations actuelles du produit pour vérifier le stock
+      const product = await productService.getProductById(productId);
+
+      if (!productService.isProductAvailable(product)) {
+        toast.error("Ce produit n'est plus disponible");
+        removeFromCart(productId);
+        return;
+      }
+
+      // Limiter la quantité au stock disponible
+      const validQuantity = Math.min(quantity, product.quantity);
+
+      if (validQuantity < quantity) {
+        toast.warning(`Stock maximum: ${product.quantity}`);
+      }
+
+      setCartItems((prevItems) =>
+        prevItems.map((item) =>
+          item.id === productId
+            ? {
+                ...item,
+                quantity: validQuantity,
+                maxQuantity: product.quantity,
+              }
+            : item
+        )
+      );
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de la quantité:", error);
+      toast.error("Erreur lors de la mise à jour de la quantité");
+    }
+  };
+
+  // Vider le panier
   const clearCart = () => {
     setCartItems([]);
-    toast.info("Panier vidé");
+    try {
+      localStorage.removeItem("cart");
+    } catch (error) {
+      console.warn("Erreur lors de la suppression du panier:", error);
+    }
   };
 
+  // Calculer le nombre total d'articles
+  const getCartCount = () => {
+    return cartItems.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  // Calculer le total du panier
   const getCartTotal = () => {
-    return cartItems.reduce(
-      (total, item) => total + item.price * item.quantity,
-      0
-    );
+    return orderService.calculateCartTotal(cartItems);
   };
 
+  // Vérifier et mettre à jour les stocks avant le checkout
+  const validateCartStock = async () => {
+    const updatedItems = [];
+    let hasChanges = false;
+
+    for (const item of cartItems) {
+      try {
+        const product = await productService.getProductById(item.id);
+
+        if (!productService.isProductAvailable(product)) {
+          toast.warning(
+            `${item.name} n'est plus disponible et a été retiré du panier`
+          );
+          hasChanges = true;
+          continue;
+        }
+
+        if (item.quantity > product.quantity) {
+          toast.warning(
+            `${item.name}: quantité réduite de ${item.quantity} à ${product.quantity}`
+          );
+          updatedItems.push({
+            ...item,
+            quantity: product.quantity,
+            maxQuantity: product.quantity,
+          });
+          hasChanges = true;
+        } else {
+          updatedItems.push({ ...item, maxQuantity: product.quantity });
+        }
+      } catch (error) {
+        console.error(
+          `Erreur lors de la vérification du produit ${item.id}:`,
+          error
+        );
+        toast.error(`Erreur lors de la vérification de ${item.name}`);
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      setCartItems(updatedItems);
+      return false; // Indique que des changements ont été apportés
+    }
+
+    return true; // Pas de changements, checkout peut continuer
+  };
+
+  // Finaliser la commande avec validation du stock
   const checkout = async () => {
     if (!user?.isAuthenticated) {
       throw new Error("Utilisateur non authentifié");
@@ -494,16 +238,26 @@ export const CartProvider = ({ children }) => {
       throw new Error("Panier vide");
     }
 
-    const orderData = {
-      userId: user.id, // ✅ ID dynamique de l'utilisateur connecté
-      items: cartItems.map((item) => ({
-        productId: item.id,
-        quantity: item.quantity,
-      })),
-    };
+    setIsLoading(true);
 
     try {
-      setIsLoading(true);
+      // Vérifier les stocks avant de procéder
+      const stockValid = await validateCartStock();
+
+      if (!stockValid) {
+        throw new Error(
+          "Le panier a été mis à jour suite à des changements de stock. Veuillez vérifier et réessayer."
+        );
+      }
+
+      const orderData = {
+        userId: user.id,
+        items: cartItems.map((item) => ({
+          productId: item.id,
+          quantity: item.quantity,
+        })),
+      };
+
       const response = await orderService.createOrder(orderData);
       clearCart();
       return response;
@@ -521,12 +275,12 @@ export const CartProvider = ({ children }) => {
     removeFromCart,
     updateQuantity,
     clearCart,
+    getCartCount,
     getCartTotal,
     checkout,
     isLoading,
+    validateCartStock,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
-
-export default CartProvider;

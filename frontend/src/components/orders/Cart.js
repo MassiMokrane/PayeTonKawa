@@ -19,6 +19,8 @@ const Cart = () => {
   } = useCart();
 
   const [orders, setOrders] = useState([]);
+  const [updatingItems, setUpdatingItems] = useState({}); // Track which items are being updated
+
   console.log("Utilisateur connecté :", user);
 
   useEffect(() => {
@@ -36,21 +38,32 @@ const Cart = () => {
     fetchOrders();
   }, [user]);
 
-  const handleQuantityChange = (productId, newQuantity) => {
+  const handleQuantityChange = async (productId, newQuantity) => {
+    // Prevent multiple simultaneous updates for the same item
+    if (updatingItems[productId]) return;
+
     if (newQuantity < 1) {
       removeFromCart(productId);
       toast.info("Produit retiré du panier");
       return;
     }
 
-    const product = cartItems.find((item) => item.id === productId);
-    if (product && newQuantity > product.quantity) {
-      toast.warning(`Stock maximum: ${product.quantity}`);
-      updateQuantity(productId, product.quantity);
-      return;
-    }
+    // Set loading state for this item
+    setUpdatingItems((prev) => ({ ...prev, [productId]: true }));
 
-    updateQuantity(productId, newQuantity);
+    try {
+      await updateQuantity(productId, newQuantity);
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour:", error);
+      toast.error("Erreur lors de la mise à jour de la quantité");
+    } finally {
+      // Remove loading state for this item
+      setUpdatingItems((prev) => {
+        const newState = { ...prev };
+        delete newState[productId];
+        return newState;
+      });
+    }
   };
 
   const handleRemoveItem = (productId, productName) => {
@@ -80,8 +93,14 @@ const Cart = () => {
       const result = await checkout();
       toast.success("Commande créée avec succès !");
       console.log("Commande créée:", result);
+
+      // Refresh orders after successful checkout
+      if (user?.isAuthenticated) {
+        const data = await orderService.getUserOrders(user.id);
+        setOrders(data);
+      }
     } catch (error) {
-      toast.error("Erreur lors de la création de la commande");
+      toast.error(error.message || "Erreur lors de la création de la commande");
       console.error("Erreur checkout:", error);
     }
   };
@@ -89,6 +108,8 @@ const Cart = () => {
   const CartItem = ({ item }) => {
     const imageUrl = productService.getImageUrl(item.image);
     const itemTotal = item.price * item.quantity;
+    const isUpdating = updatingItems[item.id];
+    const maxQuantity = item.maxQuantity || item.quantity;
 
     return (
       <div className="cart-item">
@@ -127,32 +148,43 @@ const Cart = () => {
           <p className="item-price">
             {productService.formatPrice(item.price)} € / unité
           </p>
+          {maxQuantity && (
+            <p className="item-stock">Stock disponible: {maxQuantity}</p>
+          )}
         </div>
 
         <div className="item-quantity">
           <button
             onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
             className="quantity-btn"
+            disabled={isUpdating}
           >
             -
           </button>
           <input
             type="number"
             value={item.quantity}
-            onChange={(e) =>
-              handleQuantityChange(item.id, parseInt(e.target.value) || 1)
-            }
+            onChange={(e) => {
+              const newQuantity = parseInt(e.target.value) || 1;
+              handleQuantityChange(item.id, newQuantity);
+            }}
             min="1"
-            max={item.quantity}
+            max={maxQuantity}
             className="quantity-input"
+            disabled={isUpdating}
           />
           <button
             onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-            disabled={item.quantity >= item.quantity}
+            disabled={isUpdating || item.quantity >= maxQuantity}
             className="quantity-btn"
           >
             +
           </button>
+          {isUpdating && (
+            <div className="updating-indicator">
+              <span>⏳</span>
+            </div>
+          )}
         </div>
 
         <div className="item-total">
@@ -162,6 +194,7 @@ const Cart = () => {
           <button
             onClick={() => handleRemoveItem(item.id, item.name)}
             className="remove-btn"
+            disabled={isUpdating}
           >
             🗑️
           </button>
@@ -198,10 +231,11 @@ const Cart = () => {
             </p>
             <p>Total: {productService.formatPrice(order.total)} €</p>
             <ul>
-              {order.items.map((item) => (
-                <li key={item.id}>
-                  Produit ID: {item.productId} | Quantité: {item.quantity} |
-                  Prix unitaire: {item.unitPrice} €
+              {order.items?.map((item, index) => (
+                <li key={item.id || index}>
+                  {item.productName || `Produit ID: ${item.productId}`} |
+                  Quantité: {item.quantity} | Prix unitaire:{" "}
+                  {productService.formatPrice(item.unitPrice)} €
                 </li>
               ))}
             </ul>
