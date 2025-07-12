@@ -48,36 +48,7 @@ app.get("/metrics", async (req, res) => {
 
 // Middlewares
 // app.use(helmet());
-<<<<<<< HEAD
-// app.use(
-//   helmet({
-//     contentSecurityPolicy: {
-//       directives: {
-//         defaultSrc: ["'self'"],
-//         scriptSrc: ["'self'", "'unsafe-inline'"], // 👉 autorise les scripts inline
-//         styleSrc: ["'self'", "'unsafe-inline'", "https:"],
-//         imgSrc: [
-//           "'self'",
-//           "data:",
-//           "blob:",
-//           "http://localhost:5001",
-//           "http://localhost:3000",
-//           "http://localhost:3001"
-//         ],
-//         connectSrc: [
-//           "'self'",
-//           "http://localhost:5001",
-//           "http://localhost:3000",
-//           "http://localhost:3001"
-//         ],
-//         fontSrc: ["'self'", "https:", "data:"],
-//         objectSrc: ["'none'"],
-//         upgradeInsecureRequests: [],
-//       },
-//     },
-//   })
-// );
-=======
+
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -108,7 +79,7 @@ app.use(
     },
   })
 );
->>>>>>> 8b5be79c3db92d99fa800ecc4b5a753f7f63a343
+
 
 app.use(cors());
 app.use(express.json());
