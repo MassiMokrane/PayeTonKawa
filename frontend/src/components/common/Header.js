@@ -26,7 +26,7 @@ const Header = () => {
             Accueil
           </Link>
           <Link to="/menu" className="nav-link">
-            Menu
+            Produits
           </Link>
           <Link to="/about" className="nav-link">
             À propos

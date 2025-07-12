@@ -4,11 +4,9 @@ import authService from "../services/authService";
 const AuthContext = createContext();
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
+  return ctx;
 };
 
 export const AuthProvider = ({ children }) => {
@@ -16,16 +14,17 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Vérifier si l'utilisateur est connecté au chargement
     const token = authService.getToken();
-    const userRole = authService.getUserRole();
+    const role = authService.getUserRole();
+    const id = localStorage.getItem("userId"); // 👈 correction ici (pas de getUserId)
 
-    if (token && userRole) {
+    if (token && role && id) {
       setUser({
+        id: parseInt(id, 10),
         token,
-        role: userRole,
+        role,
         isAuthenticated: true,
-        isAdmin: userRole === "admin",
+        isAdmin: role === "admin",
       });
     }
 
@@ -34,9 +33,11 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const { token, role } = await authService.login(email, password);
+      const { token, role, id } = await authService.login(email, password);
 
+      // Stocker dans le state
       const userData = {
+        id,
         token,
         role,
         isAuthenticated: true,
@@ -52,7 +53,6 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      // Envoyer toutes les données utilisateur au service
       await authService.register(userData);
       return { success: true, message: "Inscription réussie" };
     } catch (error) {
@@ -80,5 +80,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Export par défaut pour compatibilité
 export default AuthProvider;
