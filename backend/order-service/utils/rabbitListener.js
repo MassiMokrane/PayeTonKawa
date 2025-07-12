@@ -1,5 +1,13 @@
 const amqp = require("amqplib");
+const client = require("prom-client");
 const { deleteProductById } = require("../controllers/product.controller");
+
+// Compteur Prometheus pour les messages consommés par file
+const rabbitmqConsumeCounter = new client.Counter({
+  name: 'rabbitmq_messages_consumed_total',
+  help: 'Nombre de messages consommés sur RabbitMQ par file',
+  labelNames: ['queue']
+});
 
 const RABBITMQ_URL = process.env.RABBITMQ_URL || "amqp://localhost";
 const ORDER_QUEUE = "order-product-queue";
@@ -14,6 +22,7 @@ async function listenForMessages() {
 
     channel.consume(ORDER_QUEUE, async (msg) => {
       if (msg !== null) {
+        rabbitmqConsumeCounter.inc({ queue: ORDER_QUEUE });
         try {
           const content = msg.content.toString();
           const { productId } = JSON.parse(content);

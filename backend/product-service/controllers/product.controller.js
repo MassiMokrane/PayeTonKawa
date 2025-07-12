@@ -58,9 +58,12 @@ exports.createProduct = async (req, res) => {
     // Préparer les données du produit
     const productData = { ...req.body };
 
-    // Ajouter le chemin de l'image si une image a été uploadée
+    // Log pour debug upload image
     if (req.file) {
+      console.log("[UPLOAD] Fichier image reçu :", req.file.filename);
       productData.image = `/uploads/${req.file.filename}`;
+    } else {
+      console.log("[UPLOAD] Aucun fichier image reçu pour ce produit.");
     }
 
     const product = await Product.create(productData);

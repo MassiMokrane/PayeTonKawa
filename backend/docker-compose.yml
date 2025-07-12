@@ -457,6 +457,8 @@ services:
       - DB_USER=root
       - DB_PASSWORD=root
       - DB_NAME=productdb
+    volumes:
+      - ./product-service/uploads:/app/uploads
     depends_on:
       mysql-product-db:
         condition: service_healthy
