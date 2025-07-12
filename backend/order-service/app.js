@@ -43,6 +43,40 @@ const initDatabase = async () => {
 
 // Prometheus métriques
 client.collectDefaultMetrics();
+
+// === PROMETHEUS CUSTOM METRICS ===
+const httpRequestCounter = new client.Counter({
+  name: 'http_requests_total',
+  help: 'Nombre total de requêtes HTTP',
+  labelNames: ['method', 'route', 'code']
+});
+const httpRequestDuration = new client.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'Durée des requêtes HTTP en secondes',
+  labelNames: ['method', 'route', 'code'],
+  buckets: [0.01, 0.05, 0.1, 0.2, 0.5, 1, 2, 5]
+});
+
+app.use((req, res, next) => {
+  const start = process.hrtime();
+  res.on('finish', () => {
+    const duration = process.hrtime(start);
+    const durationInSeconds = duration[0] + duration[1] / 1e9;
+    const route = req.baseUrl + (req.route && req.route.path ? req.route.path : '');
+    httpRequestCounter.inc({
+      method: req.method,
+      route: route,
+      code: res.statusCode
+    });
+    httpRequestDuration.observe({
+      method: req.method,
+      route: route,
+      code: res.statusCode
+    }, durationInSeconds);
+  });
+  next();
+});
+
 app.get("/metrics", async (req, res) => {
   res.set("Content-Type", client.register.contentType);
   res.send(await client.register.metrics());
