@@ -70,22 +70,20 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Trouver l'utilisateur
     const user = await User.findOne({ where: { email } });
     if (!user) return res.status(404).json({ msg: "Utilisateur non trouvé" });
 
-    // Vérifier le mot de passe
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(400).json({ msg: "Mot de passe incorrect" });
 
-    // Générer un token JWT
     const token = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
 
-    res.json({ token, role: user.role });
+    // ⬅️  Ajout de id dans la réponse
+    res.json({ token, role: user.role, id: user.id });
   } catch (err) {
     console.error("Erreur de connexion:", err);
     res.status(500).json({ msg: "Erreur serveur" });

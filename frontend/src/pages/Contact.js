@@ -6,6 +6,7 @@ const Contact = () => {
     name: "",
     email: "",
     phone: "",
+    company: "",
     subject: "",
     message: "",
   });
@@ -26,11 +27,12 @@ const Contact = () => {
       // Simuler l'envoi du formulaire
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      toast.success("Votre message a été envoyé avec succès!");
+      toast.success("Votre demande a été envoyée avec succès!");
       setFormData({
         name: "",
         email: "",
         phone: "",
+        company: "",
         subject: "",
         message: "",
       });
@@ -48,7 +50,8 @@ const Contact = () => {
         <div className="page-header">
           <h1 className="page-title">Contactez-nous</h1>
           <p className="page-subtitle">
-            Nous sommes là pour répondre à toutes vos questions
+            Notre équipe commerciale est à votre disposition pour tous vos
+            besoins
           </p>
         </div>
 
@@ -62,9 +65,11 @@ const Contact = () => {
               <div className="contact-details">
                 <h3>Adresse</h3>
                 <p>
-                  123 Rue du Café
+                  Zone Industrielle des Cafés
                   <br />
-                  75001 Paris, France
+                  15 Avenue du Commerce
+                  <br />
+                  94300 Vincennes, France
                 </p>
               </div>
             </div>
@@ -73,7 +78,11 @@ const Contact = () => {
               <div className="contact-icon">📞</div>
               <div className="contact-details">
                 <h3>Téléphone</h3>
-                <p>01 23 45 67 89</p>
+                <p>
+                  <strong>Commercial:</strong> 01 48 75 92 84
+                  <br />
+                  <strong>Commandes:</strong> 01 48 75 92 85
+                </p>
               </div>
             </div>
 
@@ -81,23 +90,45 @@ const Contact = () => {
               <div className="contact-icon">✉️</div>
               <div className="contact-details">
                 <h3>Email</h3>
-                <p>contact@cafedelice.fr</p>
+                <p>
+                  <strong>Commercial:</strong> commercial@cafedelice.fr
+                  <br />
+                  <strong>Commandes:</strong> commandes@cafedelice.fr
+                </p>
               </div>
             </div>
 
             <div className="contact-item">
               <div className="contact-icon">🕐</div>
               <div className="contact-details">
-                <h3>Horaires d'ouverture</h3>
+                <h3>Horaires Bureau</h3>
                 <div className="hours-list">
                   <p>
-                    <strong>Lundi - Vendredi:</strong> 7h00 - 19h00
+                    <strong>Lundi - Vendredi:</strong> 8h00 - 18h00
                   </p>
                   <p>
-                    <strong>Samedi:</strong> 8h00 - 20h00
+                    <strong>Samedi:</strong> 8h00 - 12h00
                   </p>
                   <p>
-                    <strong>Dimanche:</strong> 8h00 - 18h00
+                    <strong>Dimanche:</strong> Fermé
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="contact-item">
+              <div className="contact-icon">🚚</div>
+              <div className="contact-details">
+                <h3>Livraisons</h3>
+                <div className="delivery-info">
+                  <p>
+                    <strong>France métropolitaine:</strong> 24-48h
+                  </p>
+                  <p>
+                    <strong>Europe:</strong> 3-5 jours
+                  </p>
+                  <p>
+                    <strong>Retrait entrepôt:</strong> Sur RDV
                   </p>
                 </div>
               </div>
@@ -108,7 +139,7 @@ const Contact = () => {
               <h3>Suivez-nous</h3>
               <div className="social-icons">
                 <a href="#" className="social-link">
-                  📘 Facebook
+                  📘 LinkedIn
                 </a>
                 <a href="#" className="social-link">
                   📷 Instagram
@@ -122,7 +153,7 @@ const Contact = () => {
 
           {/* Formulaire de contact */}
           <div className="contact-form">
-            <h2>Envoyez-nous un message</h2>
+            <h2>Demande de Devis / Information</h2>
 
             <form onSubmit={handleSubmit}>
               <div className="form-row">
@@ -162,7 +193,7 @@ const Contact = () => {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="phone" className="form-label">
-                    Téléphone
+                    Téléphone *
                   </label>
                   <input
                     type="tel"
@@ -172,30 +203,47 @@ const Contact = () => {
                     onChange={handleChange}
                     className="form-input"
                     placeholder="01 23 45 67 89"
+                    required
                   />
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="subject" className="form-label">
-                    Sujet *
+                  <label htmlFor="company" className="form-label">
+                    Entreprise
                   </label>
-                  <select
-                    id="subject"
-                    name="subject"
-                    value={formData.subject}
+                  <input
+                    type="text"
+                    id="company"
+                    name="company"
+                    value={formData.company}
                     onChange={handleChange}
-                    className="form-select"
-                    required
-                  >
-                    <option value="">Choisissez un sujet</option>
-                    <option value="info">Demande d'information</option>
-                    <option value="reservation">Réservation</option>
-                    <option value="event">Événement privé</option>
-                    <option value="partnership">Partenariat</option>
-                    <option value="complaint">Réclamation</option>
-                    <option value="other">Autre</option>
-                  </select>
+                    className="form-input"
+                    placeholder="Nom de votre entreprise"
+                  />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="subject" className="form-label">
+                  Type de demande *
+                </label>
+                <select
+                  id="subject"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  className="form-select"
+                  required
+                >
+                  <option value="">Choisissez un type</option>
+                  <option value="devis">Demande de devis</option>
+                  <option value="info">Information produit</option>
+                  <option value="commande">Commande en gros</option>
+                  <option value="partenariat">Partenariat commercial</option>
+                  <option value="livraison">Question livraison</option>
+                  <option value="qualite">Contrôle qualité</option>
+                  <option value="autre">Autre</option>
+                </select>
               </div>
 
               <div className="form-group">
@@ -208,7 +256,7 @@ const Contact = () => {
                   value={formData.message}
                   onChange={handleChange}
                   className="form-textarea"
-                  placeholder="Écrivez votre message ici..."
+                  placeholder="Décrivez votre demande (quantités, variétés souhaitées, délais, etc.)"
                   rows="6"
                   required
                 ></textarea>
@@ -219,7 +267,7 @@ const Contact = () => {
                 className="btn btn-primary btn-full"
                 disabled={loading}
               >
-                {loading ? "Envoi en cours..." : "Envoyer le message"}
+                {loading ? "Envoi en cours..." : "Envoyer la demande"}
               </button>
             </form>
           </div>
@@ -230,33 +278,33 @@ const Contact = () => {
           <h2>Questions Fréquentes</h2>
           <div className="faq-grid">
             <div className="faq-item">
-              <h3>Proposez-vous des options végétariennes/véganes ?</h3>
+              <h3>Quelle est la quantité minimale de commande ?</h3>
               <p>
-                Oui ! Nous proposons du lait végétal (amande, soja, avoine) pour
-                vos boissons, ainsi que des pâtisseries véganes préparées
-                quotidiennement.
+                Nous acceptons les commandes à partir de 5kg pour les
+                professionnels et 250g pour les particuliers. Des tarifs
+                dégressifs s'appliquent dès 25kg.
               </p>
             </div>
             <div className="faq-item">
-              <h3>Peut-on privatiser l'espace pour un événement ?</h3>
+              <h3>Proposez-vous des échantillons ?</h3>
               <p>
-                Absolument ! Nous proposons la privatisation de notre espace
-                pour vos événements privés. Contactez-nous pour discuter de vos
-                besoins.
+                Oui, nous envoyons des échantillons gratuits de 50g sur demande
+                pour vous permettre de tester nos cafés avant commande.
               </p>
             </div>
             <div className="faq-item">
-              <h3>Acceptez-vous les cartes de crédit ?</h3>
+              <h3>Quels sont vos délais de livraison ?</h3>
               <p>
-                Oui, nous acceptons toutes les cartes de crédit principales,
-                ainsi que les paiements en espèces et par carte bancaire.
+                24-48h en France métropolitaine pour les commandes en stock.
+                Livraison express possible sous 24h pour les commandes urgentes.
               </p>
             </div>
             <div className="faq-item">
-              <h3>Y a-t-il un parking disponible ?</h3>
+              <h3>Avez-vous des certifications qualité ?</h3>
               <p>
-                Nous avons un parking partagé à proximité. Des places de
-                stationnement sont également disponibles dans la rue.
+                Tous nos cafés sont certifiés bio, commerce équitable et
+                analysés en laboratoire. Nous fournissons les certificats avec
+                chaque commande.
               </p>
             </div>
           </div>
@@ -264,14 +312,18 @@ const Contact = () => {
 
         {/* Section Localisation */}
         <div className="location-section">
-          <h2>Notre Localisation</h2>
+          <h2>Notre Entrepôt</h2>
           <div className="location-content">
             <div className="map-placeholder">
               <div className="map-info">
-                <p>📍 123 Rue du Café, 75001 Paris</p>
-                <p>🚇 Métro: Châtelet-Les Halles (lignes 1, 4, 7, 11, 14)</p>
-                <p>🚌 Bus: 21, 67, 69, 74, 85</p>
-                <p>🚗 Parking public à 2 min à pied</p>
+                <p>
+                  📍 Zone Industrielle des Cafés, 15 Avenue du Commerce, 94300
+                  Vincennes
+                </p>
+                <p>🚇 RER: Vincennes (ligne A) - 10 min en bus</p>
+                <p>🚌 Bus: 56, 115, 124</p>
+                <p>🚗 Parking poids lourds disponible</p>
+                <p>⏰ Retrait sur RDV: Lundi-Vendredi 8h-17h</p>
               </div>
             </div>
           </div>

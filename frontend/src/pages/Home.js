@@ -14,16 +14,17 @@ const Home = () => {
             Bienvenue chez <span className="highlight">Café Délice</span>
           </h1>
           <p className="hero-subtitle">
-            Découvrez nos cafés artisanaux et nos délicieuses pâtisseries dans
-            une ambiance chaleureuse et conviviale.
+            Votre grossiste spécialisé dans la vente de café en poudre premium.
+            Découvrez notre large sélection de cafés du monde entier, torréfiés
+            avec expertise pour professionnels et particuliers.
           </p>
           <div className="hero-buttons">
             <Link to="/menu" className="btn btn-primary btn-large">
-              Découvrir notre menu
+              Parcourir nos cafés
             </Link>
             {!user?.isAuthenticated && (
               <Link to="/register" className="btn btn-outline btn-large">
-                Rejoignez-nous
+                Créer un compte
               </Link>
             )}
           </div>
@@ -39,27 +40,27 @@ const Home = () => {
           <h2 className="section-title">Nos Spécialités</h2>
           <div className="specialties-grid">
             <div className="specialty-card">
-              <div className="specialty-icon">☕</div>
-              <h3>Cafés Premium</h3>
+              <div className="specialty-icon">🌍</div>
+              <h3>Cafés du Monde</h3>
               <p>
-                Sélection de grains d'exception torréfiés avec passion pour un
-                goût unique et authentique.
+                Une sélection rigoureuse de cafés en poudre provenant des
+                meilleures plantations d'Amérique du Sud, d'Afrique et d'Asie.
               </p>
             </div>
             <div className="specialty-card">
-              <div className="specialty-icon">🥐</div>
-              <h3>Pâtisseries Fraîches</h3>
+              <div className="specialty-icon">⚖️</div>
+              <h3>Vente en Gros</h3>
               <p>
-                Viennoiseries et pâtisseries préparées quotidiennement par nos
-                artisans boulangers.
+                Commandes en grande quantité avec des prix dégressifs pour les
+                professionnels, restaurants, hôtels et distributeurs.
               </p>
             </div>
             <div className="specialty-card">
-              <div className="specialty-icon">🍰</div>
-              <h3>Desserts Maison</h3>
+              <div className="specialty-icon">🔥</div>
+              <h3>Torréfaction Artisanale</h3>
               <p>
-                Créations gourmandes et desserts traditionnels préparés avec des
-                ingrédients de qualité.
+                Tous nos cafés sont torréfiés selon des méthodes traditionnelles
+                et conditionnés sous vide pour préserver leur fraîcheur.
               </p>
             </div>
           </div>
@@ -71,16 +72,17 @@ const Home = () => {
         <div className="container">
           <div className="about-content">
             <div className="about-text">
-              <h2>Notre Histoire</h2>
+              <h2>Notre Expertise</h2>
               <p>
-                Depuis 2020, Café Délice vous accueille dans un cadre chaleureux
-                pour partager notre passion du café d'exception. Chaque tasse
-                raconte une histoire, chaque moment devient un souvenir
-                précieux.
+                Depuis 2020, Café Délice est votre partenaire de confiance pour
+                l'approvisionnement en café en poudre de qualité supérieure.
+                Nous sélectionnons nos grains directement auprès des producteurs
+                pour garantir authenticité et excellence.
               </p>
               <p>
-                Notre équipe sélectionne avec soin les meilleurs grains du monde
-                entier pour vous offrir une expérience gustative inoubliable.
+                Spécialisés dans la distribution B2B et B2C, nous proposons des
+                conditionnements adaptés à tous vos besoins, du sachet de 250g
+                aux sacs de 25kg pour les professionnels.
               </p>
               <Link to="/about" className="btn btn-secondary">
                 En savoir plus
@@ -88,16 +90,16 @@ const Home = () => {
             </div>
             <div className="about-stats">
               <div className="stat">
-                <h3>1000+</h3>
-                <p>Clients satisfaits</p>
+                <h3>500+</h3>
+                <p>Clients professionnels</p>
               </div>
               <div className="stat">
-                <h3>50+</h3>
+                <h3>80+</h3>
                 <p>Variétés de café</p>
               </div>
               <div className="stat">
-                <h3>4.8/5</h3>
-                <p>Note moyenne</p>
+                <h3>15+</h3>
+                <p>Pays d'origine</p>
               </div>
             </div>
           </div>
@@ -107,28 +109,32 @@ const Home = () => {
       {/* Section Horaires */}
       <section className="hours">
         <div className="container">
-          <h2 className="section-title">Nos Horaires</h2>
+          <h2 className="section-title">Horaires de Service</h2>
           <div className="hours-grid">
             <div className="hours-card">
-              <h3>En Semaine</h3>
+              <h3>Bureau Commercial</h3>
               <div className="hours-info">
                 <p>
                   <strong>Lundi - Vendredi</strong>
                 </p>
-                <p>7h00 - 19h00</p>
-              </div>
-            </div>
-            <div className="hours-card">
-              <h3>Week-end</h3>
-              <div className="hours-info">
+                <p>8h00 - 18h00</p>
                 <p>
                   <strong>Samedi</strong>
                 </p>
-                <p>8h00 - 20h00</p>
+                <p>8h00 - 12h00</p>
+              </div>
+            </div>
+            <div className="hours-card">
+              <h3>Entrepôt & Livraisons</h3>
+              <div className="hours-info">
                 <p>
-                  <strong>Dimanche</strong>
+                  <strong>Lundi - Vendredi</strong>
                 </p>
-                <p>8h00 - 18h00</p>
+                <p>7h00 - 17h00</p>
+                <p>
+                  <strong>Livraisons express</strong>
+                </p>
+                <p>Disponibles sur demande</p>
               </div>
             </div>
           </div>
@@ -139,11 +145,14 @@ const Home = () => {
       <section className="cta">
         <div className="container">
           <div className="cta-content">
-            <h2>Prêt à découvrir nos saveurs ?</h2>
-            <p>Explorez notre carte et commandez vos produits préférés</p>
+            <h2>Prêt à découvrir nos cafés ?</h2>
+            <p>
+              Explorez notre catalogue complet et passez commande en quelques
+              clics
+            </p>
             <div className="cta-buttons">
               <Link to="/menu" className="btn btn-primary">
-                Voir le menu
+                Voir le catalogue
               </Link>
               {user?.isAuthenticated && (
                 <Link to="/cart" className="btn btn-outline">
