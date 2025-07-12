@@ -269,13 +269,8 @@ import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { toast } from "react-toastify";
 import Loading from "../components/common/Loading";
-<<<<<<< HEAD
-import ProductService from "../services/productService";
-import ProductCard from "../components/products/ProductCard";
-=======
 import productService from "../services/productService";
 import "./Menu.css";
->>>>>>> 8b5be79c3db92d99fa800ecc4b5a753f7f63a343
 
 const Menu = () => {
   const { user } = useAuth();
@@ -292,14 +287,8 @@ const Menu = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-<<<<<<< HEAD
-      // Appel dynamique à l'API produits
-      const produits = await ProductService.getProducts();
-      setProducts(produits);
-=======
       const data = await productService.getProducts();
       setProducts(data);
->>>>>>> 8b5be79c3db92d99fa800ecc4b5a753f7f63a343
     } catch (error) {
       toast.error("Erreur lors du chargement des produits");
       console.error("Erreur:", error);
@@ -334,15 +323,6 @@ const Menu = () => {
     return Array.from(categoryMap.values());
   };
 
-<<<<<<< HEAD
-  const PRODUCT_API_URL = process.env.REACT_APP_PRODUCT_API_URL || "http://localhost:5001";
-  const DEFAULT_IMAGE = "/vite.svg";
-  const getImageUrl = (imagePath) => imagePath ? `${PRODUCT_API_URL}${imagePath}` : DEFAULT_IMAGE;
-
-  if (loading) {
-    return <Loading message="Chargement du menu..." />;
-  }
-=======
   const categories = getCategories();
 
   const filteredProducts = products.filter((product) => {
@@ -499,7 +479,6 @@ const Menu = () => {
   };
 
   if (loading) return <Loading message="Chargement du menu..." />;
->>>>>>> 8b5be79c3db92d99fa800ecc4b5a753f7f63a343
 
   return (
     <div className="menu-page">
@@ -534,27 +513,10 @@ const Menu = () => {
           ))}
         </div>
 
-<<<<<<< HEAD
-        {/* Grille des produits */}
-        <div className="products-grid" style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-          gap: 0,
-          margin: 0,
-          padding: 0,
-          marginTop: "2rem"
-        }}>
-          {filteredProducts.length > 0 ? (
-            filteredProducts.map((product) => (
-              <div style={{ marginBottom: 24 }} key={product.id}>
-                <ProductCard product={product} onAddToCart={addToCart} />
-              </div>
-=======
         <div className="products-grid">
           {filteredProducts.length > 0 ? (
             filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
->>>>>>> 8b5be79c3db92d99fa800ecc4b5a753f7f63a343
             ))
           ) : (
             <div className="no-products">
