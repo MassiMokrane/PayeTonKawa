@@ -2,6 +2,11 @@ const request = require('supertest');
 const express = require('express');
 const app = require('../app');
 const { User } = require('../models/user.model');
+const { sequelize } = require('../config/db');
+
+beforeAll(async () => {
+  await sequelize.sync({ force: true });
+});
 
 describe('Tests d\'intégration Auth Service', () => {
   let createdUserId;
