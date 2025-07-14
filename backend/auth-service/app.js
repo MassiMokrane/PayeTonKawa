@@ -76,7 +76,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ msg: "Erreur serveur" });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`✅ auth-service sur http://localhost:${PORT}`)
-);
+module.exports = app;
