@@ -1,35 +1,3 @@
-# global:
-#   scrape_interval: 5s
-#   evaluation_interval: 5s
-
-# scrape_configs:
-#   - job_name: "auth-service"
-#     static_configs:
-#       - targets: ["auth-service:5000"]
-
-#   - job_name: "clients-service"
-#     static_configs:
-#       - targets: ["clients-service:5001"]
-
-#   - job_name: "produits-service"
-#     static_configs:
-#       - targets: ["produits-service:5002"]
-
-#   - job_name: "commandes-service"
-#     static_configs:
-#       - targets: ["commandes-service:5003"]
-
-#   - job_name: "paniers-service"
-#     static_configs:
-#       - targets: ["paniers-service:5004"]
-
-#   - job_name: "stats-service"
-#     static_configs:
-#       - targets: ["stats-service:5005"]
-
-#   - job_name: "rabbitmq"
-#     static_configs:
-#       - targets: ["rabbitmq:15692"]
 global:
   scrape_interval: 5s
 
@@ -37,3 +5,15 @@ scrape_configs:
   - job_name: "auth-service"
     static_configs:
       - targets: ["auth-service:5000"]
+
+  - job_name: "product-service"
+    static_configs:
+      - targets: ["product-service:5001"]
+
+  - job_name: "order-service"
+    static_configs:
+      - targets: ["order-service:5002"]
+
+  - job_name: "rabbitmq"
+    static_configs:
+      - targets: ["rabbitmq:15692"]

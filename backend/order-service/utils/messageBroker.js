@@ -4,11 +4,11 @@ const client = require('prom-client');
 
 let channel;
 
-// Compteur Prometheus pour les messages publiés par file
+// Compteur Prometheus pour les messages publiés par file et par événement
 const rabbitmqPublishCounter = new client.Counter({
   name: 'rabbitmq_messages_published_total',
-  help: 'Nombre de messages publiés sur RabbitMQ par file',
-  labelNames: ['queue']
+  help: 'Nombre de messages publiés sur RabbitMQ par file et par événement',
+  labelNames: ['queue', 'event']
 });
 
 const connectRabbitMQ = async () => {
@@ -22,16 +22,16 @@ const connectRabbitMQ = async () => {
   }
 };
 
-const publishToQueue = async (queueName, message) => {
+const publishToQueue = async (queueName, message, event = 'unknown') => {
   if (!channel) {
     console.error("RabbitMQ channel not initialized");
     return;
   }
   channel.sendToQueue(queueName, Buffer.from(JSON.stringify(message)), { persistent: true });
-  rabbitmqPublishCounter.inc({ queue: queueName });
+  rabbitmqPublishCounter.inc({ queue: queueName, event });
 };
 
 module.exports = {
   connectRabbitMQ,
-  publishToQueue,
+  // publishToQueue supprimé car inutilisé
 };

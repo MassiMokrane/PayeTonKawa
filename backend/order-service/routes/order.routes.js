@@ -1,3 +1,4 @@
+console.log("=== order.routes.js chargé ===");
 const router = require("express").Router();
 const {
   createOrder,
@@ -7,23 +8,32 @@ const {
   deleteOrder,
   getOrdersByUserId,
 } = require("../controllers/order.controller");
+const { isAuthenticated, isAdmin } = require("../middlewares/auth.middleware");
 
-// Créer une commande
-router.post("/", createOrder);
+// Middleware pour autoriser l'accès à ses propres commandes ou à l'admin
+const canReadOwnOrders = (req, res, next) => {
+  if (req.user?.role === 'admin' || req.user?.id == req.params.userId) {
+    return next();
+  }
+  return res.status(403).json({ msg: "Accès interdit à ces commandes" });
+};
 
-// Récupérer toutes les commandes
-router.get("/", getOrders);
+// Créer une commande (authentifié : client ou admin)
+router.post("/", isAuthenticated, createOrder);
 
-// Récupérer une commande par ID
-router.get("/:id", getOrderById);
+// Récupérer toutes les commandes (admin uniquement)
+router.get("/", isAuthenticated, isAdmin, getOrders);
 
-// Récupérer les commandes d'un utilisateur
-router.get("/user/:userId", getOrdersByUserId);
+// Récupérer une commande par ID (admin uniquement)
+router.get("/:id", isAuthenticated, isAdmin, getOrderById);
 
-// Mettre à jour une commande
-router.put("/:id", updateOrder);
+// Récupérer les commandes d'un utilisateur (admin ou utilisateur concerné)
+router.get("/user/:userId", isAuthenticated, canReadOwnOrders, getOrdersByUserId);
 
-// Supprimer une commande
-router.delete("/:id", deleteOrder);
+// Mettre à jour une commande (admin uniquement)
+router.put("/:id", isAuthenticated, isAdmin, updateOrder);
+
+// Supprimer une commande (admin uniquement)
+router.delete("/:id", isAuthenticated, isAdmin, deleteOrder);
 
 module.exports = router;

@@ -20,6 +20,7 @@ const { connectDB } = require("./config/db");
 const { initializeProductModel } = require("./models/product.model");
 const productRoutes = require("./routes/product.routes");
 const client = require("prom-client");
+const { connectAndListenRabbitMQ, publishEvent, rabbitmqPublishCounter, rabbitmqConsumeCounter } = require('./rabbitmq');
 
 const app = express();
 
@@ -41,9 +42,85 @@ const initDatabase = async () => {
 
 // Métriques Prometheus
 client.collectDefaultMetrics();
-app.get("/metrics", async (req, res) => {
-  res.set("Content-Type", client.register.contentType);
-  res.send(await client.register.metrics());
+
+// Enregistrer les métriques RabbitMQ
+client.register.registerMetric(rabbitmqPublishCounter);
+client.register.registerMetric(rabbitmqConsumeCounter);
+
+// === PROMETHEUS CUSTOM METRICS ===
+const httpRequestCounter = new client.Counter({
+  name: 'http_requests_total',
+  help: 'Nombre total de requêtes HTTP',
+  labelNames: ['method', 'route', 'code']
+});
+const httpRequestDuration = new client.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'Durée des requêtes HTTP en secondes',
+  labelNames: ['method', 'route', 'code'],
+  buckets: [0.01, 0.05, 0.1, 0.2, 0.5, 1, 2, 5]
+});
+
+console.log('DEBUG: app.js démarre bien');
+console.log('DEBUG: Avant appel connectAndListenRabbitMQ');
+
+// === RabbitMQ events ===
+connectAndListenRabbitMQ(async (event) => {
+  if (event.type === 'order_deleted') {
+    const { items } = event.data;
+    const { Product } = require('./models/product.model');
+    for (const item of items) {
+      const product = await Product.findByPk(item.productId);
+      if (product) {
+        const newQuantity = product.quantity + item.quantity;
+        await product.update({ quantity: newQuantity });
+        console.log(`📦 Produit ${item.productId}: stock ré-incrémenté de ${item.quantity} (nouveau stock: ${newQuantity})`);
+      } else {
+        console.warn(`⚠️ Produit ${item.productId} non trouvé pour restock`);
+      }
+    }
+    console.log(`✅ Restock terminé pour ${items.length} produit(s)`);
+  }
+  if (event.type === 'product_deleted') {
+    // Ici, tu pourrais ajouter une logique pour notifier ou nettoyer côté produit
+    // Exemple : log ou suppression de données annexes
+    console.log(`[CONSUMER] Event product_deleted reçu dans product-service :`, event.data);
+    // (Optionnel) Ajouter un traitement métier ici
+  }
+  if (event.type === 'product_created') {
+    // Exemple de traitement à l'arrivée d'un nouveau produit (log, synchro, etc.)
+    console.log(`[CONSUMER] Event product_created reçu dans product-service :`, event.data);
+    // (Optionnel) Ajouter un traitement métier ici
+  }
+});
+
+console.log('DEBUG: Après appel connectAndListenRabbitMQ');
+
+// Pour que le controller puisse publier des messages
+module.exports.publishEvent = publishEvent;
+
+app.use((req, res, next) => {
+  const start = process.hrtime();
+  res.on('finish', () => {
+    const duration = process.hrtime(start);
+    const durationInSeconds = duration[0] + duration[1] / 1e9;
+    const route = req.baseUrl + (req.route && req.route.path ? req.route.path : '');
+    httpRequestCounter.inc({
+      method: req.method,
+      route: route,
+      code: res.statusCode
+    });
+    httpRequestDuration.observe({
+      method: req.method,
+      route: route,
+      code: res.statusCode
+    }, durationInSeconds);
+  });
+  next();
+});
+
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', require('prom-client').register.contentType);
+  res.end(await require('prom-client').register.metrics());
 });
 
 // Middlewares
@@ -169,3 +246,4 @@ const startServer = async (retries = 5) => {
 };
 
 startServer();
+

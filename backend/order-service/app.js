@@ -9,7 +9,7 @@ const { connectRabbitMQ } = require("./utils/messageBroker");
 const { initializeModels } = require("./models");
 const { connectDB } = require("./config/db");
 const orderRoutes = require("./routes/order.routes.js");
-
+const { connectAndListenRabbitMQ, publishEvent } = require('./rabbitmq');
 
 
 // Charger .env dès le départ
@@ -77,9 +77,9 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get("/metrics", async (req, res) => {
-  res.set("Content-Type", client.register.contentType);
-  res.send(await client.register.metrics());
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', require('prom-client').register.contentType);
+  res.end(await require('prom-client').register.metrics());
 });
 
 // Middlewares
@@ -111,6 +111,37 @@ app.use((err, req, res, next) => {
   res.status(500).json({ msg: "Erreur serveur", error: err.message });
 });
 
+// === RabbitMQ events ===
+connectAndListenRabbitMQ(async (event) => {
+  if (event.type === 'product_deleted') {
+    const { productId } = event.data;
+    const { Order, OrderItem } = require('./models');
+    // Supprimer toutes les commandes contenant ce produit
+    const ordersToDelete = await Order.findAll({
+      include: [{
+        model: OrderItem,
+        as: 'items',
+        where: { productId }
+      }]
+    });
+    for (const order of ordersToDelete) {
+      await order.destroy();
+      console.log(`🗑️ Commande ${order.id} supprimée car produit ${productId} supprimé`);
+    }
+  }
+  if (event.type === 'user_deleted') {
+    const { userId } = event.data;
+    const { Order } = require('./models');
+    // Supprimer toutes les commandes de l'utilisateur
+    const ordersToDelete = await Order.findAll({ where: { userId } });
+    for (const order of ordersToDelete) {
+      await order.destroy();
+      console.log(`🗑️ Commande ${order.id} supprimée car utilisateur ${userId} supprimé`);
+    }
+    console.log(`✅ Suppression des commandes terminée pour l'utilisateur ${userId}`);
+  }
+});
+
 // Démarrage serveur avec retry
 const PORT = process.env.PORT || 5002;
 
@@ -118,7 +149,8 @@ const startServer = async (retries = 5) => {
   for (let i = 0; i < retries; i++) {
     try {
       await initDatabase();
-      await connectRabbitMQ(); // 🔥 ajoute cette ligne
+      await connectRabbitMQ();
+      // listenForMessages(); // Démarre le listener RabbitMQ - REMOVED
       app.listen(PORT, "0.0.0.0", () => {
         console.log(`✅ Order-service démarré sur http://localhost:${PORT}`);
       });

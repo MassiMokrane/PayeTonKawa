@@ -32,13 +32,6 @@ const getProductDetails = async (productId) => {
   }
 };
 
-const checkProductStock = async (productId, quantity) => {
-  const product = await getProductDetails(productId);
-  if (!product) return false;
-
-  return product.quantity >= quantity;
-};
-
 const updateProductStock = async (productId, quantity) => {
   try {
     const res = await fetch(
@@ -67,7 +60,6 @@ const updateProductStock = async (productId, quantity) => {
 
 module.exports = {
   checkUserExists,
-  checkProductStock,
   updateProductStock,
   getProductDetails,
 };

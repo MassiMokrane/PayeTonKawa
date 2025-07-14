@@ -114,6 +114,8 @@ services:
       - DB_PASSWORD=root
       - DB_NAME=authdb
       - JWT_SECRET=supersecret
+    volumes:
+      - ./auth-service:/usr/src/app
     depends_on:
       mysql-auth-db:
         condition: service_healthy
@@ -135,7 +137,7 @@ services:
       - DB_PASSWORD=root
       - DB_NAME=productdb
     volumes:
-      - ./product-service/uploads:/app/uploads
+      - ./product-service:/usr/src/app
     depends_on:
       mysql-product-db:
         condition: service_healthy
@@ -156,6 +158,8 @@ services:
       - DB_USER=root
       - DB_PASSWORD=root
       - DB_NAME=orderdb
+    volumes:
+      - ./order-service:/usr/src/app
     depends_on:
       mysql-order-db:
         condition: service_healthy
@@ -163,30 +167,76 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  admin-event-server:
+    build:
+      context: .
+      dockerfile: admin-event-server.Dockerfile
+    container_name: admin-event-server
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_URL=amqp://admin:password@rabbitmq
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+
+  # === MONITORING ===
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:latest
     container_name: prometheus
     ports:
       - "9090:9090"
     volumes:
       - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+      - /etc/localtime:/etc/localtime:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
     restart: unless-stopped
+    depends_on:
+      - auth-service
+      - product-service
+      - order-service
 
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:latest
     container_name: grafana
     ports:
       - "3000:3000"
-    volumes:
-      - grafana-storage:/var/lib/grafana
     environment:
+      - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ../monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  rabbitmq-exporter:
+    image: kbudde/rabbitmq-exporter:latest
+    container_name: rabbitmq-exporter
+    environment:
+      - RABBIT_URL=http://admin:password@rabbitmq:15672
+    ports:
+      - "15692:15692"
+    restart: unless-stopped
+    depends_on:
+      - rabbitmq
 
 volumes:
   mysql-auth-data:
   mysql-product-data:
-  grafana-storage:
   mysql-order-data:
-  rabbitmq-data: #thiis
+  rabbitmq-data:
+  prometheus_data:
+  grafana_data:
 
