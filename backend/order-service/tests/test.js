@@ -10,6 +10,8 @@ jest.mock("../models/product.model", () => ({
   },
 }));
 
+
+
 describe("Product Service", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -90,3 +92,4 @@ describe("Product Service", () => {
     expect(result).toBeNull();
   });
 });
+

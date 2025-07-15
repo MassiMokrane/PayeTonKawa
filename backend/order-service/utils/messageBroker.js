@@ -1,7 +1,15 @@
 // order-service/utils/messageBroker.js
 const amqp = require('amqplib');
+const client = require('prom-client');
 
 let channel;
+
+// Compteur Prometheus pour les messages publiés par file
+const rabbitmqPublishCounter = new client.Counter({
+  name: 'rabbitmq_messages_published_total',
+  help: 'Nombre de messages publiés sur RabbitMQ par file',
+  labelNames: ['queue']
+});
 
 const connectRabbitMQ = async () => {
   try {
@@ -20,6 +28,7 @@ const publishToQueue = async (queueName, message) => {
     return;
   }
   channel.sendToQueue(queueName, Buffer.from(JSON.stringify(message)), { persistent: true });
+  rabbitmqPublishCounter.inc({ queue: queueName });
 };
 
 module.exports = {
