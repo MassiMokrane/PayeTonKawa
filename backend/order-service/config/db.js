@@ -1,3 +1,5 @@
+const dotenv = require("dotenv");
+dotenv.config();
 const { Sequelize } = require("sequelize");
 
 const requiredEnvVars = [
@@ -49,7 +51,9 @@ const connectDB = async () => {
     );
     console.log(`✅ Base '${dbName}' créée ou déjà existante`);
 
-    console.log(`🔄 Connexion à MySQL: ${dbUser}@${dbHost}:${dbPort}/${dbName}`);
+    console.log(
+      `🔄 Connexion à MySQL: ${dbUser}@${dbHost}:${dbPort}/${dbName}`
+    );
     await sequelize.authenticate();
     console.log("✅ MySQL connecté (Order Service)");
   } catch (err) {
