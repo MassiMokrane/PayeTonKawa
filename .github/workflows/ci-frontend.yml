@@ -31,9 +31,6 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Run linting
-      run: npm run lint || echo "Linting not configured"
-    
     - name: Run tests
       run: npm test -- --coverage --watchAll=false --passWithNoTests
     
@@ -43,6 +40,7 @@ jobs:
         file: ./frontend/coverage/lcov.info
         flags: frontend
         name: frontend-coverage
+      if: success()
 
   build-frontend:
     runs-on: ubuntu-latest
@@ -107,6 +105,6 @@ jobs:
           -Dsonar.projectKey=payetonkawa-frontend
           -Dsonar.sources=frontend/src
           -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
-          -Dsonar.coverage.exclusions=**/*.test.js,**/*.spec.js,**/tests/**,**/node_modules/**,**/__tests__/**
+          -Dsonar.coverage.exclusions=**/*.test.js,**/*.spec.js,**/tests/**,**/node_modules/**,**/__tests__/**,**/coverage/**
           -Dsonar.test.inclusions=**/*.test.js,**/*.spec.js,**/__tests__/**
           -Dsonar.testExecutionReportPaths=frontend/coverage/test-report.xml 

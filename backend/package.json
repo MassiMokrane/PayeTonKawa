@@ -2,6 +2,16 @@
   "name": "admin-event-server",
   "version": "1.0.0",
   "main": "admin-event-server.js",
+  "scripts": {
+    "test": "echo \"Running all backend tests...\" && npm run test:auth && npm run test:product && npm run test:order",
+    "test:auth": "cd auth-service && npm test",
+    "test:product": "cd product-service && npm test",
+    "test:order": "cd order-service && npm test",
+    "test:coverage": "echo \"Running tests with coverage...\" && npm run test:auth:coverage && npm run test:product:coverage && npm run test:order:coverage",
+    "test:auth:coverage": "cd auth-service && npm test -- --coverage",
+    "test:product:coverage": "cd product-service && npm test -- --coverage",
+    "test:order:coverage": "cd order-service && npm test -- --coverage"
+  },
   "dependencies": {
     "amqplib": "^0.10.3"
   }

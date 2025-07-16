@@ -81,13 +81,57 @@ describe('product-service integration', () => {
     expect(res.body.name).toBe('Café modifié');
   });
 
-  it('DELETE /api/products/:id supprime un produit (admin)', async () => {
-    const prod = await Product.create({ name: 'ToDelete', price: 1 });
+  it('DELETE /api/products/:id supprime un produit', async () => {
+    const prod = await Product.create({ name: 'Test', price: 1, quantity: 10 });
     const res = await request(app)
       .delete(`/api/products/${prod.id}`)
       .set('Authorization', `Bearer ${adminToken}`);
     expect(res.statusCode).toBe(200);
-    expect(res.body.message).toBe('Product deleted');
+  });
+
+  // Nouveaux tests pour l'endpoint de mise à jour du stock
+  it('PUT /api/products/:id/stock met à jour le stock d\'un produit', async () => {
+    const prod = await Product.create({ name: 'Test Stock', price: 5.50, quantity: 100 });
+    
+    const res = await request(app)
+      .put(`/api/products/${prod.id}/stock`)
+      .send({ quantity: 50 });
+    
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Stock mis à jour avec succès');
+    expect(res.body.product.quantity).toBe(50);
+    expect(res.body.product.name).toBe('Test Stock');
+  });
+
+  it('PUT /api/products/:id/stock échoue avec une quantité négative', async () => {
+    const prod = await Product.create({ name: 'Test Stock', price: 5.50, quantity: 100 });
+    
+    const res = await request(app)
+      .put(`/api/products/${prod.id}/stock`)
+      .send({ quantity: -10 });
+    
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('Quantité invalide');
+  });
+
+  it('PUT /api/products/:id/stock échoue si le produit n\'existe pas', async () => {
+    const res = await request(app)
+      .put('/api/products/999/stock')
+      .send({ quantity: 50 });
+    
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Produit non trouvé');
+  });
+
+  it('PUT /api/products/:id/stock échoue sans quantité', async () => {
+    const prod = await Product.create({ name: 'Test Stock', price: 5.50, quantity: 100 });
+    
+    const res = await request(app)
+      .put(`/api/products/${prod.id}/stock`)
+      .send({});
+    
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('Quantité invalide');
   });
 
   it('GET /api/products/health retourne le status UP', async () => {

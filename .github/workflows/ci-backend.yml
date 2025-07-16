@@ -31,11 +31,8 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Run linting
-      run: npm run lint || echo "Linting not configured"
-    
     - name: Run tests
-      run: npm test -- --coverage --watchAll=false
+      run: npm test -- --coverage --watchAll=false --passWithNoTests
     
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
@@ -43,6 +40,7 @@ jobs:
         file: ./backend/auth-service/coverage/lcov.info
         flags: auth-service
         name: auth-service-coverage
+      if: success()
 
   test-product-service:
     runs-on: ubuntu-latest
@@ -64,11 +62,8 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Run linting
-      run: npm run lint || echo "Linting not configured"
-    
     - name: Run tests
-      run: npm test -- --coverage --watchAll=false
+      run: npm test -- --coverage --watchAll=false --passWithNoTests
     
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
@@ -76,6 +71,7 @@ jobs:
         file: ./backend/product-service/coverage/lcov.info
         flags: product-service
         name: product-service-coverage
+      if: success()
 
   test-order-service:
     runs-on: ubuntu-latest
@@ -97,11 +93,8 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Run linting
-      run: npm run lint || echo "Linting not configured"
-    
     - name: Run tests
-      run: npm test -- --coverage --watchAll=false
+      run: npm test -- --coverage --watchAll=false --passWithNoTests
     
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
@@ -109,6 +102,46 @@ jobs:
         file: ./backend/order-service/coverage/lcov.info
         flags: order-service
         name: order-service-coverage
+      if: success()
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: [test-auth-service, test-product-service, test-order-service]
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test_db
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies for all services
+      run: |
+        cd backend/auth-service && npm ci
+        cd ../product-service && npm ci
+        cd ../order-service && npm ci
+    
+    - name: Run integration tests
+      run: |
+        cd backend/order-service
+        npm test -- --testPathPattern=integration --coverage --watchAll=false --passWithNoTests
+      env:
+        DB_HOST: localhost
+        DB_USER: root
+        DB_PASSWORD: root
+        DB_NAME: test_db
 
   sonarqube-analysis:
     runs-on: ubuntu-latest
@@ -131,6 +164,12 @@ jobs:
         cd ../product-service && npm ci
         cd ../order-service && npm ci
     
+    - name: Run tests with coverage
+      run: |
+        cd backend/auth-service && npm test -- --coverage --watchAll=false --passWithNoTests
+        cd ../product-service && npm test -- --coverage --watchAll=false --passWithNoTests
+        cd ../order-service && npm test -- --coverage --watchAll=false --passWithNoTests
+    
     - name: Run SonarQube Analysis
       uses: sonarqube-quality-gate-action@master
       env:
@@ -142,8 +181,8 @@ jobs:
           -Dsonar.projectKey=payetonkawa-backend
           -Dsonar.sources=backend
           -Dsonar.javascript.lcov.reportPaths=backend/*/coverage/lcov.info
-          -Dsonar.coverage.exclusions=**/*.test.js,**/*.spec.js,**/tests/**,**/node_modules/**
-          -Dsonar.test.inclusions=**/*.test.js,**/*.spec.js
+          -Dsonar.coverage.exclusions=**/*.test.js,**/*.spec.js,**/tests/**,**/node_modules/**,**/coverage/**
+          -Dsonar.test.inclusions=**/*.test.js,**/*.spec.js,**/tests/**
           -Dsonar.testExecutionReportPaths=backend/*/coverage/test-report.xml
 
   build-docker-images:

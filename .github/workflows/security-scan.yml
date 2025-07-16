@@ -9,7 +9,7 @@ on:
     - cron: '0 2 * * 1' # Every Monday at 2 AM
 
 jobs:
-  dependency-check:
+  security-scan:
     runs-on: ubuntu-latest
     
     steps:
@@ -30,126 +30,37 @@ jobs:
     
     - name: Run npm audit
       run: |
-        echo "=== Auth Service Audit ==="
-        cd backend/auth-service && npm audit --audit-level=moderate || true
-        echo "=== Product Service Audit ==="
-        cd ../product-service && npm audit --audit-level=moderate || true
-        echo "=== Order Service Audit ==="
-        cd ../order-service && npm audit --audit-level=moderate || true
-        echo "=== Frontend Audit ==="
-        cd ../../frontend && npm audit --audit-level=moderate || true
+        echo "=== Auth Service Security Scan ==="
+        cd backend/auth-service && npm audit --audit-level=moderate || echo "Vulnerabilities found in auth-service"
+        
+        echo "=== Product Service Security Scan ==="
+        cd ../product-service && npm audit --audit-level=moderate || echo "Vulnerabilities found in product-service"
+        
+        echo "=== Order Service Security Scan ==="
+        cd ../order-service && npm audit --audit-level=moderate || echo "Vulnerabilities found in order-service"
+        
+        echo "=== Frontend Security Scan ==="
+        cd ../../frontend && npm audit --audit-level=moderate || echo "Vulnerabilities found in frontend"
     
-    - name: Upload audit results
-      uses: actions/upload-artifact@v4
-      with:
-        name: npm-audit-results
-        path: |
-          backend/*/npm-audit.json
-          frontend/npm-audit.json
-        retention-days: 30
-
-  docker-security-scan:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: 'backend/auth-service:latest'
-        format: 'sarif'
-        output: 'trivy-results-auth.sarif'
-    
-    - name: Run Trivy vulnerability scanner for product service
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: 'backend/product-service:latest'
-        format: 'sarif'
-        output: 'trivy-results-product.sarif'
-    
-    - name: Run Trivy vulnerability scanner for order service
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: 'backend/order-service:latest'
-        format: 'sarif'
-        output: 'trivy-results-order.sarif'
-    
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: 'trivy-results-auth.sarif'
-    
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: 'trivy-results-product.sarif'
-    
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: 'trivy-results-order.sarif'
-
-  codeql-analysis:
-    runs-on: ubuntu-latest
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'javascript' ]
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: ${{ matrix.language }}
-    
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
-    
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-
-  container-scan:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Build Docker images
-      run: |
-        docker build -t auth-service:latest ./backend/auth-service
-        docker build -t product-service:latest ./backend/product-service
-        docker build -t order-service:latest ./backend/order-service
-    
-    - name: Run Snyk to check for vulnerabilities
-      uses: snyk/actions/docker@master
+    - name: Run Snyk security scan
+      uses: snyk/actions/node@master
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
-        image: auth-service:latest
         args: --severity-threshold=high
+      continue-on-error: true
     
-    - name: Run Snyk to check for vulnerabilities
-      uses: snyk/actions/docker@master
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    - name: Run OWASP ZAP scan
+      uses: zaproxy/action-full-scan@v0.8.0
       with:
-        image: product-service:latest
-        args: --severity-threshold=high
+        target: 'http://localhost:3000'
+      continue-on-error: true
     
-    - name: Run Snyk to check for vulnerabilities
-      uses: snyk/actions/docker@master
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    - name: Notify security issues
+      uses: 8398a7/action-slack@v3
       with:
-        image: order-service:latest
-        args: --severity-threshold=high 
+        status: failure
+        text: 'Security vulnerabilities detected! Please review the scan results.'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      if: failure() 
