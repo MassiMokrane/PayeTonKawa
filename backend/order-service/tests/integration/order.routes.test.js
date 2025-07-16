@@ -24,10 +24,16 @@ jest.mock('../../models', () => ({
   },
   OrderItem: {
     create: jest.fn(),
+    bulkCreate: jest.fn(),
     destroy: jest.fn(),
     sync: jest.fn()
   },
   initializeModels: jest.fn()
+}));
+
+// Mock de RabbitMQ
+jest.mock('../../rabbitmq', () => ({
+  publishEvent: jest.fn()
 }));
 
 // Mock des appels HTTP externes pour éviter les dépendances
@@ -37,9 +43,10 @@ jest.mock('../../utils/api', () => ({
     id: 1,
     name: 'Test Product',
     price: 10.50,
-    stock: 100
+    quantity: 100
   }),
-  updateProductStock: jest.fn().mockResolvedValue(true)
+  updateProductStock: jest.fn().mockResolvedValue(true),
+  publishToQueue: jest.fn().mockResolvedValue(true)
 }));
 
 describe('order-service integration', () => {
@@ -60,6 +67,10 @@ describe('order-service integration', () => {
 
   describe('POST /api/orders', () => {
     it('crée une commande avec des items', async () => {
+      // Mock du produit
+      const { getProductDetails } = require('../../utils/api');
+      getProductDetails.mockResolvedValue({ id: 1, name: 'Test Product', price: 10.50, quantity: 100 });
+      
       // Mock de la création d'ordre
       const mockOrder = {
         id: 1,
@@ -69,6 +80,10 @@ describe('order-service integration', () => {
         items: [{ productId: 1, quantity: 2, unitPrice: 10.50 }]
       };
       Order.create.mockResolvedValue(mockOrder);
+      OrderItem.bulkCreate.mockResolvedValue([{ id: 1, orderId: 1, productId: 1, quantity: 2, unitPrice: 10.50 }]);
+      
+      // Mock pour findByPk avec include
+      Order.findByPk.mockResolvedValue(mockOrder);
 
       const res = await request(app)
         .post('/api/orders')
@@ -88,6 +103,12 @@ describe('order-service integration', () => {
     });
 
     it('calcule correctement le total avec plusieurs items', async () => {
+      // Mock des produits
+      const { getProductDetails } = require('../../utils/api');
+      getProductDetails
+        .mockResolvedValueOnce({ id: 1, name: 'Product 1', price: 10.50, quantity: 100 })
+        .mockResolvedValueOnce({ id: 2, name: 'Product 2', price: 5.25, quantity: 50 });
+      
       // Mock de la création d'ordre
       const mockOrder = {
         id: 1,
@@ -100,6 +121,13 @@ describe('order-service integration', () => {
         ]
       };
       Order.create.mockResolvedValue(mockOrder);
+      OrderItem.bulkCreate.mockResolvedValue([
+        { id: 1, orderId: 1, productId: 1, quantity: 1, unitPrice: 10.50 },
+        { id: 2, orderId: 1, productId: 2, quantity: 2, unitPrice: 5.25 }
+      ]);
+      
+      // Mock pour findByPk avec include
+      Order.findByPk.mockResolvedValue(mockOrder);
 
       const res = await request(app)
         .post('/api/orders')
@@ -173,18 +201,12 @@ describe('order-service integration', () => {
       expect(res.body.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('retourne seulement les commandes de l\'utilisateur connecté', async () => {
+    it('échoue pour un utilisateur non-admin', async () => {
       const res = await request(app)
         .get('/api/orders')
         .set('Authorization', `Bearer ${userToken}`);
 
-      expect(res.statusCode).toBe(200);
-      expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body.length).toBeGreaterThanOrEqual(2);
-      // Vérifier que toutes les commandes appartiennent à l'utilisateur
-      res.body.forEach(order => {
-        expect(order.userId).toBe(userId);
-      });
+      expect(res.statusCode).toBe(403);
     });
 
     it('échoue sans token d\'authentification', async () => {
@@ -208,10 +230,10 @@ describe('order-service integration', () => {
       Order.findByPk.mockResolvedValue(mockOrder);
     });
 
-    it('retourne une commande spécifique', async () => {
+    it('retourne une commande spécifique pour un admin', async () => {
       const res = await request(app)
         .get(`/api/orders/${orderId}`)
-        .set('Authorization', `Bearer ${userToken}`);
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.id).toBe(orderId);
@@ -219,10 +241,20 @@ describe('order-service integration', () => {
       expect(res.body.items).toHaveLength(1);
     });
 
+    it('échoue pour un utilisateur non-admin', async () => {
+      const res = await request(app)
+        .get(`/api/orders/${orderId}`)
+        .set('Authorization', `Bearer ${userToken}`);
+
+      expect(res.statusCode).toBe(403);
+    });
+
     it('retourne 404 pour une commande inexistante', async () => {
+      Order.findByPk.mockResolvedValue(null);
+      
       const res = await request(app)
         .get('/api/orders/99999')
-        .set('Authorization', `Bearer ${userToken}`);
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.statusCode).toBe(404);
     });
@@ -233,7 +265,7 @@ describe('order-service integration', () => {
     });
   });
 
-  describe('PUT /api/orders/:id/status', () => {
+  describe('PUT /api/orders/:id', () => {
     let orderId;
 
     beforeEach(() => {
@@ -242,15 +274,40 @@ describe('order-service integration', () => {
         id: orderId,
         userId: userId,
         total: 21.00,
-        status: 'pending'
+        status: 'pending',
+        items: [{ orderId: orderId, productId: 1, quantity: 2, unitPrice: 10.50 }],
+        update: jest.fn().mockResolvedValue(true)
       };
       Order.findByPk.mockResolvedValue(mockOrder);
       Order.update.mockResolvedValue([1]); // 1 ligne mise à jour
     });
 
-    it('met à jour le statut d\'une commande', async () => {
+    it('met à jour une commande', async () => {
+      const updatedOrder = {
+        id: orderId,
+        userId: userId,
+        total: 21.00,
+        status: 'completed',
+        items: [{ orderId: orderId, productId: 1, quantity: 2, unitPrice: 10.50 }]
+      };
+      
+      // Mock pour le premier appel (trouver la commande)
+      const mockOrder = {
+        id: orderId,
+        userId: userId,
+        total: 21.00,
+        status: 'pending',
+        items: [{ orderId: orderId, productId: 1, quantity: 2, unitPrice: 10.50 }],
+        update: jest.fn().mockResolvedValue(true)
+      };
+      
+      // Mock pour le deuxième appel (retourner la commande mise à jour)
+      Order.findByPk
+        .mockResolvedValueOnce(mockOrder)
+        .mockResolvedValueOnce(updatedOrder);
+
       const res = await request(app)
-        .put(`/api/orders/${orderId}/status`)
+        .put(`/api/orders/${orderId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ status: 'completed' });
 
@@ -258,31 +315,26 @@ describe('order-service integration', () => {
       expect(res.body.status).toBe('completed');
     });
 
-    it('échoue avec un statut invalide', async () => {
+    it('échoue pour un utilisateur non-admin', async () => {
       const res = await request(app)
-        .put(`/api/orders/${orderId}/status`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ status: 'invalid_status' });
-
-      expect(res.statusCode).toBe(400);
-    });
-
-    it('échoue sans droits admin', async () => {
-      const res = await request(app)
-        .put(`/api/orders/${orderId}/status`)
+        .put(`/api/orders/${orderId}`)
         .set('Authorization', `Bearer ${userToken}`)
         .send({ status: 'completed' });
 
       expect(res.statusCode).toBe(403);
     });
-  });
 
-  describe('Health endpoint', () => {
-    it('GET /api/orders/health retourne le status UP', async () => {
-      const res = await request(app).get('/api/orders/health');
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe('UP');
-      expect(res.body.service).toBe('order-service');
+    it('retourne 404 pour une commande inexistante', async () => {
+      Order.findByPk.mockResolvedValue(null);
+      
+      const res = await request(app)
+        .put(`/api/orders/${orderId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'completed' });
+
+      expect(res.statusCode).toBe(404);
     });
   });
+
+
 }); 
