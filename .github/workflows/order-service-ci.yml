@@ -1,21 +1,21 @@
-name: Ìªí Order Service CI/CD
+name: Order Service CI/CD
 
 on:
   push:
-    branches: [ main, develop, Mokrane_UP ]
-    paths: 
-      - 'backend/order-service/**'
-      - '.github/workflows/order-service-ci.yml'
-  pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop, Mokrane_UP]
     paths:
-      - 'backend/order-service/**'
+      - "backend/order-service/**"
+      - ".github/workflows/order-service-ci.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "backend/order-service/**"
 
 jobs:
   test-order-service:
     runs-on: ubuntu-latest
-    name: Ì∑™ Build & Test Order Service
-    
+    name: Build & Test Order Service
+
     services:
       mysql:
         image: mysql:8.0
@@ -30,7 +30,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-      
+
       rabbitmq:
         image: rabbitmq:3-management
         env:
@@ -46,72 +46,72 @@ jobs:
           --health-retries=10
 
     steps:
-    - name: Ì≥• Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Ìø¢ Setup Node.js 18
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: backend/order-service/package-lock.json
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: backend/order-service/package-lock.json
 
-    - name: Ì≥¶ Install Dependencies
-      working-directory: backend/order-service
-      run: |
-        echo "Ì≥¶ Installing npm packages for Order Service..."
-        npm ci
-        echo "‚úÖ Dependencies installed successfully"
+      - name: Install Dependencies
+        working-directory: backend/order-service
+        run: |
+          echo " Installing npm packages for Order Service..."
+          npm ci
+          echo "‚úÖ Dependencies installed successfully"
 
-    - name: ‚è≥ Wait for MySQL
-      run: |
-        echo "‚è≥ Waiting for MySQL to be ready..."
-        for i in {1..30}; do
-          if mysqladmin ping -h 127.0.0.1 -P 3309 --silent; then
-            echo "‚úÖ MySQL is ready!"
-            break
-          fi
-          echo "‚è≥ MySQL not ready yet... ($i/30)"
-          sleep 3
-        done
+      - name: ‚è≥ Wait for MySQL
+        run: |
+          echo "‚è≥ Waiting for MySQL to be ready..."
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -P 3309 --silent; then
+              echo "‚úÖ MySQL is ready!"
+              break
+            fi
+            echo "‚è≥ MySQL not ready yet... ($i/30)"
+            sleep 3
+          done
 
-    - name: ‚è≥ Wait for RabbitMQ
-      run: |
-        echo "‚è≥ Waiting for RabbitMQ to be ready..."
-        for i in {1..30}; do
-          if curl -f http://127.0.0.1:15672/api/overview -u admin:password >/dev/null 2>&1; then
-            echo "‚úÖ RabbitMQ is ready!"
-            break
-          fi
-          echo "‚è≥ RabbitMQ not ready yet... ($i/30)"
-          sleep 3
-        done
+      - name: ‚è≥ Wait for RabbitMQ
+        run: |
+          echo "‚è≥ Waiting for RabbitMQ to be ready..."
+          for i in {1..30}; do
+            if curl -f http://127.0.0.1:15672/api/overview -u admin:password >/dev/null 2>&1; then
+              echo "‚úÖ RabbitMQ is ready!"
+              break
+            fi
+            echo "‚è≥ RabbitMQ not ready yet... ($i/30)"
+            sleep 3
+          done
 
-    - name: Ì∑™ Run Tests
-      working-directory: backend/order-service
-      env:
-        NODE_ENV: test
-        DB_HOST: 127.0.0.1
-        DB_PORT: 3309
-        DB_USER: root
-        DB_PASSWORD: root
-        DB_NAME: orderdb
-        RABBITMQ_URL: amqp://admin:password@127.0.0.1:5672
-        PORT: 5002
-      run: |
-        echo "Ì∑™ Running tests for Order Service..."
-        npm test
-        echo "‚úÖ All tests passed!"
+      - name: Run Tests
+        working-directory: backend/order-service
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3309
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: orderdb
+          RABBITMQ_URL: amqp://admin:password@127.0.0.1:5672
+          PORT: 5002
+        run: |
+          echo " Running tests for Order Service..."
+          npm test
+          echo "‚úÖ All tests passed!"
 
-    - name: Ì∞≥ Build Docker Image
-      working-directory: backend/order-service
-      run: |
-        echo "Ì∞≥ Building Docker image for Order Service..."
-        docker build -t payetonkawa-order:${{ github.sha }} .
-        echo "‚úÖ Docker image built successfully!"
+      - name: Build Docker Image
+        working-directory: backend/order-service
+        run: |
+          echo " Building Docker image for Order Service..."
+          docker build -t payetonkawa-order:${{ github.sha }} .
+          echo "‚úÖ Docker image built successfully!"
 
-    - name: Ì¥í Security Audit
-      working-directory: backend/order-service
-      run: |
-        echo "Ì¥í Running security audit..."
-        npm audit --audit-level high || echo "‚ö†Ô∏è Security audit completed with warnings"
+      - name: Security Audit
+        working-directory: backend/order-service
+        run: |
+          echo " Running security audit..."
+          npm audit --audit-level high || echo "‚ö†Ô∏è Security audit completed with warnings"

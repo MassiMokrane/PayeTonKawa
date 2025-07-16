@@ -1,4 +1,4 @@
-describe("��� Product Service - Tests Complets PayeTonKawa", () => {
+describe(" Product Service - Tests Complets PayeTonKawa", () => {
   // ========== TESTS DE BASE ==========
   test("✅ Service de base fonctionne", () => {
     expect(2 + 2).toBe(4);

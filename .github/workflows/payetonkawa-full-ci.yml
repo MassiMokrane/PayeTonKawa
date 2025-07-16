@@ -2,12 +2,12 @@ name: ‚òïÔ∏è PayeTonKawa - Full CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop, Mokrane_UP ]
+    branches: [main, develop, Mokrane_UP]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: "18"
   MYSQL_ROOT_PASSWORD: root
   MYSQL_ALLOW_EMPTY_PASSWORD: yes
 
@@ -15,8 +15,8 @@ jobs:
   # ========== JOB 1: AUTH SERVICE ==========
   test-auth-service:
     runs-on: ubuntu-latest
-    name: Ì¥ê Auth Service Tests
-    
+    name: Auth Service Tests
+
     services:
       mysql:
         image: mysql:8.0
@@ -33,51 +33,51 @@ jobs:
           --health-retries=10
 
     steps:
-    - name: ÔøΩÔøΩ Checkout Code
-      uses: actions/checkout@v4
+      - name: ÔøΩÔøΩ Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Ìø¢ Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: backend/auth-service/package-lock.json
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/auth-service/package-lock.json
 
-    - name: Ì≥¶ Install Auth Dependencies
-      working-directory: backend/auth-service
-      run: npm ci
+      - name: Install Auth Dependencies
+        working-directory: backend/auth-service
+        run: npm ci
 
-    - name: ‚è≥ Wait for Auth MySQL
-      run: |
-        for i in {1..30}; do
-          if mysqladmin ping -h 127.0.0.1 -P 3307 --silent; then
-            echo "‚úÖ Auth MySQL ready!"
-            break
-          fi
-          sleep 3
-        done
+      - name: ‚è≥ Wait for Auth MySQL
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -P 3307 --silent; then
+              echo "‚úÖ Auth MySQL ready!"
+              break
+            fi
+            sleep 3
+          done
 
-    - name: Ì∑™ Run Auth Tests
-      working-directory: backend/auth-service
-      env:
-        NODE_ENV: test
-        DB_HOST: 127.0.0.1
-        DB_PORT: 3307
-        DB_USER: root
-        DB_PASSWORD: root
-        DB_NAME: authdb
-        JWT_SECRET: test-secret-key-for-ci
-        PORT: 5000
-      run: npm test
+      - name: Run Auth Tests
+        working-directory: backend/auth-service
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3307
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: authdb
+          JWT_SECRET: test-secret-key-for-ci
+          PORT: 5000
+        run: npm test
 
-    - name: Ì≥ä Auth Test Results
-      run: echo "‚úÖ Auth Service tests completed successfully"
+      - name: Auth Test Results
+        run: echo "‚úÖ Auth Service tests completed successfully"
 
   # ========== JOB 2: ORDER SERVICE ==========
   test-order-service:
     runs-on: ubuntu-latest
-    name: Ìªí Order Service Tests
-    
+    name: Order Service Tests
+
     services:
       mysql:
         image: mysql:8.0
@@ -92,7 +92,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-      
+
       rabbitmq:
         image: rabbitmq:3-management
         env:
@@ -108,61 +108,61 @@ jobs:
           --health-retries=10
 
     steps:
-    - name: Ì≥• Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Ìø¢ Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: backend/order-service/package-lock.json
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/order-service/package-lock.json
 
-    - name: Ì≥¶ Install Order Dependencies
-      working-directory: backend/order-service
-      run: npm ci
+      - name: Install Order Dependencies
+        working-directory: backend/order-service
+        run: npm ci
 
-    - name: ‚è≥ Wait for Order Services
-      run: |
-        echo "Waiting for MySQL..."
-        for i in {1..30}; do
-          if mysqladmin ping -h 127.0.0.1 -P 3309 --silent; then
-            echo "‚úÖ Order MySQL ready!"
-            break
-          fi
-          sleep 3
-        done
-        
-        echo "Waiting for RabbitMQ..."
-        for i in {1..30}; do
-          if curl -f http://127.0.0.1:15672/api/overview -u admin:password >/dev/null 2>&1; then
-            echo "‚úÖ RabbitMQ ready!"
-            break
-          fi
-          sleep 3
-        done
+      - name: ‚è≥ Wait for Order Services
+        run: |
+          echo "Waiting for MySQL..."
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -P 3309 --silent; then
+              echo "‚úÖ Order MySQL ready!"
+              break
+            fi
+            sleep 3
+          done
 
-    - name: Ì∑™ Run Order Tests
-      working-directory: backend/order-service
-      env:
-        NODE_ENV: test
-        DB_HOST: 127.0.0.1
-        DB_PORT: 3309
-        DB_USER: root
-        DB_PASSWORD: root
-        DB_NAME: orderdb
-        RABBITMQ_URL: amqp://admin:password@127.0.0.1:5672
-        PORT: 5002
-      run: npm test
+          echo "Waiting for RabbitMQ..."
+          for i in {1..30}; do
+            if curl -f http://127.0.0.1:15672/api/overview -u admin:password >/dev/null 2>&1; then
+              echo "‚úÖ RabbitMQ ready!"
+              break
+            fi
+            sleep 3
+          done
 
-    - name: Ì≥ä Order Test Results
-      run: echo "‚úÖ Order Service tests completed successfully"
+      - name: Run Order Tests
+        working-directory: backend/order-service
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3309
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: orderdb
+          RABBITMQ_URL: amqp://admin:password@127.0.0.1:5672
+          PORT: 5002
+        run: npm test
+
+      - name: Order Test Results
+        run: echo "‚úÖ Order Service tests completed successfully"
 
   # ========== JOB 3: PRODUCT SERVICE ==========
   test-product-service:
     runs-on: ubuntu-latest
-    name: Ì≥¶ Product Service Tests
-    
+    name: Product Service Tests
+
     services:
       mysql:
         image: mysql:8.0
@@ -179,131 +179,137 @@ jobs:
           --health-retries=10
 
     steps:
-    - name: Ì≥• Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Ìø¢ Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: backend/product-service/package-lock.json
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/product-service/package-lock.json
 
-    - name: Ì≥¶ Install Product Dependencies
-      working-directory: backend/product-service
-      run: npm ci
+      - name: Install Product Dependencies
+        working-directory: backend/product-service
+        run: npm ci
 
-    - name: Ì≥Å Create Upload Directory
-      working-directory: backend/product-service
-      run: mkdir -p uploads
+      - name: Create Upload Directory
+        working-directory: backend/product-service
+        run: mkdir -p uploads
 
-    - name: ‚è≥ Wait for Product MySQL
-      run: |
-        for i in {1..30}; do
-          if mysqladmin ping -h 127.0.0.1 -P 3308 --silent; then
-            echo "‚úÖ Product MySQL ready!"
-            break
-          fi
-          sleep 3
-        done
+      - name: ‚è≥ Wait for Product MySQL
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -P 3308 --silent; then
+              echo "‚úÖ Product MySQL ready!"
+              break
+            fi
+            sleep 3
+          done
 
-    - name: Ì∑™ Run Product Tests
-      working-directory: backend/product-service
-      env:
-        NODE_ENV: test
-        DB_HOST: 127.0.0.1
-        DB_PORT: 3308
-        DB_USER: root
-        DB_PASSWORD: root
-        DB_NAME: productdb
-        PORT: 5001
-      run: npm test
+      - name: Run Product Tests
+        working-directory: backend/product-service
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3308
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: productdb
+          PORT: 5001
+        run: npm test
 
-    - name: Ì≥ä Product Test Results
-      run: echo "‚úÖ Product Service tests completed successfully"
+      - name: Product Test Results
+        run: echo "‚úÖ Product Service tests completed successfully"
 
   # ========== JOB 4: SECURITY & BUILD ==========
   security-and-build:
     runs-on: ubuntu-latest
-    name: Ì¥í Security & Build
+    name: Security & Build
     needs: [test-auth-service, test-order-service, test-product-service]
-    
+
     strategy:
       matrix:
         service: [auth-service, order-service, product-service]
-    
+
     steps:
-    - name: Ì≥• Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Ìø¢ Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: backend/${{ matrix.service }}/package-lock.json
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/${{ matrix.service }}/package-lock.json
 
-    - name: Ì≥¶ Install Dependencies
-      working-directory: backend/${{ matrix.service }}
-      run: npm ci
+      - name: Install Dependencies
+        working-directory: backend/${{ matrix.service }}
+        run: npm ci
 
-    - name: Ì¥í Security Audit
-      working-directory: backend/${{ matrix.service }}
-      run: |
-        echo "Ì¥í Running security audit for ${{ matrix.service }}..."
-        npm audit --audit-level high || echo "‚ö†Ô∏è Security audit completed with warnings"
+      - name: Security Audit
+        working-directory: backend/${{ matrix.service }}
+        run: |
+          echo " Running security audit for ${{ matrix.service }}..."
+          npm audit --audit-level high || echo "‚ö†Ô∏è Security audit completed with warnings"
 
-    - name: Ì∞≥ Build Docker Image
-      working-directory: backend/${{ matrix.service }}
-      run: |
-        echo "Ì∞≥ Building Docker image for ${{ matrix.service }}..."
-        if [ -f Dockerfile ]; then
-          docker build -t payetonkawa-${{ matrix.service }}:${{ github.sha }} .
-          echo "‚úÖ Docker image built successfully!"
-        else
-          echo "‚ö†Ô∏è No Dockerfile found for ${{ matrix.service }}"
-        fi
+      - name: Build Docker Image
+        working-directory: backend/${{ matrix.service }}
+        run: |
+          echo " Building Docker image for ${{ matrix.service }}..."
+          if [ -f Dockerfile ]; then
+            docker build -t payetonkawa-${{ matrix.service }}:${{ github.sha }} .
+            echo "‚úÖ Docker image built successfully!"
+          else
+            echo "‚ö†Ô∏è No Dockerfile found for ${{ matrix.service }}"
+          fi
 
   # ========== JOB 5: DEPLOYMENT SUMMARY ==========
   deployment-summary:
     runs-on: ubuntu-latest
-    name: Ì≥ã Deployment Summary
-    needs: [test-auth-service, test-order-service, test-product-service, security-and-build]
+    name: Deployment Summary
+    needs:
+      [
+        test-auth-service,
+        test-order-service,
+        test-product-service,
+        security-and-build,
+      ]
     if: always()
-    
-    steps:
-    - name: Ì≥ä Generate Test Summary
-      run: |
-        echo "# ‚òïÔ∏è PayeTonKawa CI/CD Pipeline Results" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## Ì∑™ Test Results:" >> $GITHUB_STEP_SUMMARY
-        echo "- Ì¥ê **Auth Service**: ${{ needs.test-auth-service.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Ìªí **Order Service**: ${{ needs.test-order-service.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Ì≥¶ **Product Service**: ${{ needs.test-product-service.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Ì¥í **Security & Build**: ${{ needs.security-and-build.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## Ì≥à Statistics:" >> $GITHUB_STEP_SUMMARY
-        echo "- **Total Services**: 3" >> $GITHUB_STEP_SUMMARY
-        echo "- **Total Tests**: ~69 tests" >> $GITHUB_STEP_SUMMARY
-        echo "- **Commit SHA**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        
-        if [[ "${{ needs.test-auth-service.result }}" == "success" && "${{ needs.test-order-service.result }}" == "success" && "${{ needs.test-product-service.result }}" == "success" ]]; then
-          echo "## Ìæâ **ALL TESTS PASSED** - Ready for deployment! ‚òïÔ∏è" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "## ‚ùå **SOME TESTS FAILED** - Please check the logs above" >> $GITHUB_STEP_SUMMARY
-        fi
 
-    - name: Ì∫Ä Deployment Status
-      run: |
-        if [[ "${{ needs.test-auth-service.result }}" == "success" && "${{ needs.test-order-service.result }}" == "success" && "${{ needs.test-product-service.result }}" == "success" ]]; then
-          echo "Ìæâ All PayeTonKawa services are ready for deployment!"
-          echo "‚úÖ Auth Service: Ready"
-          echo "‚úÖ Order Service: Ready"  
-          echo "‚úÖ Product Service: Ready"
-        else
-          echo "‚ùå Some services failed - deployment blocked"
-          exit 1
-        fi
+    steps:
+      - name: Generate Test Summary
+        run: |
+          echo "# ‚òïÔ∏è PayeTonKawa CI/CD Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "##  Test Results:" >> $GITHUB_STEP_SUMMARY
+          echo "-  **Auth Service**: ${{ needs.test-auth-service.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "-  **Order Service**: ${{ needs.test-order-service.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "-  **Product Service**: ${{ needs.test-product-service.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "-  **Security & Build**: ${{ needs.security-and-build.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "##  Statistics:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Services**: 3" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Tests**: ~69 tests" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit SHA**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.test-auth-service.result }}" == "success" && "${{ needs.test-order-service.result }}" == "success" && "${{ needs.test-product-service.result }}" == "success" ]]; then
+            echo "##  **ALL TESTS PASSED** - Ready for deployment! ‚òïÔ∏è" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ‚ùå **SOME TESTS FAILED** - Please check the logs above" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Deployment Status
+        run: |
+          if [[ "${{ needs.test-auth-service.result }}" == "success" && "${{ needs.test-order-service.result }}" == "success" && "${{ needs.test-product-service.result }}" == "success" ]]; then
+            echo " All PayeTonKawa services are ready for deployment!"
+            echo "‚úÖ Auth Service: Ready"
+            echo "‚úÖ Order Service: Ready"  
+            echo "‚úÖ Product Service: Ready"
+          else
+            echo "‚ùå Some services failed - deployment blocked"
+            exit 1
+          fi
