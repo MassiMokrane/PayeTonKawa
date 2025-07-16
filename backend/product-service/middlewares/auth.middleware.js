@@ -9,6 +9,7 @@ exports.isAuthenticated = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
+    console.error("Erreur de vérification du token:", err);
     return res.status(401).json({ msg: "Token invalide ou expiré" });
   }
 };

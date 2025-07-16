@@ -1,0 +1,8 @@
+{
+  "name": "admin-event-server",
+  "version": "1.0.0",
+  "main": "admin-event-server.js",
+  "dependencies": {
+    "amqplib": "^0.10.3"
+  }
+} 

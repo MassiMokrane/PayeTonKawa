@@ -9,12 +9,15 @@ const requiredEnvVars = [
 ];
 const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
-if (missingVars.length > 0) {
+if (process.env.NODE_ENV !== 'test' && missingVars.length > 0) {
   console.error("❌ Variables d'environnement manquantes:", missingVars);
   process.exit(1);
 }
 
 const dbName = process.env.DB_NAME;
+if (!/^\w+$/.test(dbName)) {
+  throw new Error("Nom de base de données invalide !");
+}
 const dbUser = process.env.DB_USER;
 const dbPassword = process.env.DB_PASSWORD;
 const dbHost = process.env.DB_HOST;

@@ -4,9 +4,8 @@ WORKDIR /app
 
 # Copier les fichiers de dépendances
 COPY package*.json ./
-
-# Installer les dépendances (production uniquement)
-RUN npm ci --only=production
+# Installer les dépendances (production uniquement) et nodemon globalement pour le développement, sans exécuter de scripts
+RUN npm ci --only=production --ignore-scripts && npm install -g nodemon --ignore-scripts
 
 # Copier le code source
 COPY . .
@@ -15,4 +14,4 @@ COPY . .
 EXPOSE 5002
 
 # Démarrer l'application
-CMD ["node", "app.js"]
+CMD ["node", "server.js"]

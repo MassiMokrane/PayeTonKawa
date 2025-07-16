@@ -6,6 +6,9 @@ console.log("DB_HOST:", process.env.DB_HOST);
 console.log("DB_NAME:", process.env.DB_NAME);
 
 const dbName = process.env.DB_NAME;
+if (!/^\w+$/.test(dbName)) {
+  throw new Error("Nom de base de données invalide !");
+}
 const dbUser = process.env.DB_USER;
 const dbPassword = process.env.DB_PASSWORD;
 const dbHost = process.env.DB_HOST;
@@ -43,3 +46,4 @@ module.exports = {
   sequelize,
   connectDB,
 };
+//commenteed

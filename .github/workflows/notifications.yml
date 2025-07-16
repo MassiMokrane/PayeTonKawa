@@ -1,0 +1,227 @@
+name: Notifications and Reports
+
+on:
+  workflow_run:
+    workflows: ["CI Backend Services", "CI Frontend", "CD Deploy to Production"]
+    types:
+      - completed
+
+jobs:
+  notify-slack:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion != 'skipped'
+    
+    steps:
+    - name: Notify Slack
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ github.event.workflow_run.conclusion }}
+        text: |
+          Workflow: ${{ github.event.workflow_run.name }}
+          Status: ${{ github.event.workflow_run.conclusion }}
+          Branch: ${{ github.event.workflow_run.head_branch }}
+          Commit: ${{ github.event.workflow_run.head_sha }}
+          URL: ${{ github.event.workflow_run.html_url }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  generate-weekly-report:
+    runs-on: ubuntu-latest
+    if: github.event.schedule
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Generate weekly report
+      run: |
+        cat > generate-report.js << 'EOF'
+        const fs = require('fs');
+        const https = require('https');
+        
+        async function getWorkflowRuns() {
+          const token = process.env.GITHUB_TOKEN;
+          const owner = 'your-username';
+          const repo = 'PayeTonKawa';
+          
+          return new Promise((resolve, reject) => {
+            const options = {
+              hostname: 'api.github.com',
+              path: `/repos/${owner}/${repo}/actions/runs?created=gt:${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()}`,
+              headers: {
+                'Authorization': `token ${token}`,
+                'User-Agent': 'GitHub-Actions'
+              }
+            };
+            
+            https.get(options, (res) => {
+              let data = '';
+              res.on('data', (chunk) => data += chunk);
+              res.on('end', () => resolve(JSON.parse(data)));
+            }).on('error', reject);
+          });
+        }
+        
+        async function generateReport() {
+          try {
+            const runs = await getWorkflowRuns();
+            const report = {
+              period: 'Last 7 days',
+              totalRuns: runs.total_count,
+              successfulRuns: runs.workflow_runs.filter(r => r.conclusion === 'success').length,
+              failedRuns: runs.workflow_runs.filter(r => r.conclusion === 'failure').length,
+              workflows: {}
+            };
+            
+            runs.workflow_runs.forEach(run => {
+              if (!report.workflows[run.name]) {
+                report.workflows[run.name] = { total: 0, success: 0, failure: 0 };
+              }
+              report.workflows[run.name].total++;
+              if (run.conclusion === 'success') {
+                report.workflows[run.name].success++;
+              } else if (run.conclusion === 'failure') {
+                report.workflows[run.name].failure++;
+              }
+            });
+            
+            fs.writeFileSync('weekly-report.json', JSON.stringify(report, null, 2));
+            console.log('Weekly report generated successfully');
+          } catch (error) {
+            console.error('Error generating report:', error);
+          }
+        }
+        
+        generateReport();
+        EOF
+        
+        node generate-report.js
+    
+    - name: Upload weekly report
+      uses: actions/upload-artifact@v4
+      with:
+        name: weekly-report
+        path: weekly-report.json
+        retention-days: 30
+    
+    - name: Send weekly report to Slack
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        text: |
+          📊 Weekly CI/CD Report
+          
+          Total Workflow Runs: ${{ fromJSON(steps.report.outputs.data).totalRuns }}
+          Successful: ${{ fromJSON(steps.report.outputs.data).successfulRuns }}
+          Failed: ${{ fromJSON(steps.report.outputs.data).failedRuns }}
+          
+          Success Rate: ${{ (fromJSON(steps.report.outputs.data).successfulRuns / fromJSON(steps.report.outputs.data).totalRuns * 100).toFixed(1) }}%
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  coverage-report:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    
+    steps:
+    - name: Download coverage artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: auth-service-coverage
+        path: ./coverage/auth
+    
+    - name: Download coverage artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: product-service-coverage
+        path: ./coverage/product
+    
+    - name: Download coverage artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: order-service-coverage
+        path: ./coverage/order
+    
+    - name: Download coverage artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-coverage
+        path: ./coverage/frontend
+    
+    - name: Generate coverage summary
+      run: |
+        cat > coverage-summary.js << 'EOF'
+        const fs = require('fs');
+        const path = require('path');
+        
+        function parseLcov(filePath) {
+          if (!fs.existsSync(filePath)) return null;
+          
+          const content = fs.readFileSync(filePath, 'utf8');
+          const lines = content.split('\n');
+          let totalLines = 0;
+          let coveredLines = 0;
+          
+          lines.forEach(line => {
+            if (line.startsWith('SF:')) {
+              // Source file
+            } else if (line.startsWith('DA:')) {
+              // Line data
+              const parts = line.split(',');
+              if (parts.length >= 2) {
+                totalLines++;
+                if (parseInt(parts[1]) > 0) {
+                  coveredLines++;
+                }
+              }
+            }
+          });
+          
+          return totalLines > 0 ? (coveredLines / totalLines * 100).toFixed(2) : 0;
+        }
+        
+        const services = ['auth', 'product', 'order', 'frontend'];
+        const summary = {};
+        
+        services.forEach(service => {
+          const lcovPath = path.join('./coverage', service, 'lcov.info');
+          const coverage = parseLcov(lcovPath);
+          summary[service] = coverage ? parseFloat(coverage) : 0;
+        });
+        
+        const overallCoverage = Object.values(summary).reduce((a, b) => a + b, 0) / services.length;
+        summary.overall = overallCoverage.toFixed(2);
+        
+        fs.writeFileSync('coverage-summary.json', JSON.stringify(summary, null, 2));
+        console.log('Coverage Summary:', summary);
+        EOF
+        
+        node coverage-summary.js
+    
+    - name: Upload coverage summary
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-summary
+        path: coverage-summary.json
+        retention-days: 30
+    
+    - name: Notify coverage status
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        text: |
+          📈 Coverage Report
+          
+          Auth Service: ${{ fromJSON(steps.coverage.outputs.data).auth }}%
+          Product Service: ${{ fromJSON(steps.coverage.outputs.data).product }}%
+          Order Service: ${{ fromJSON(steps.coverage.outputs.data).order }}%
+          Frontend: ${{ fromJSON(steps.coverage.outputs.data).frontend }}%
+          
+          Overall: ${{ fromJSON(steps.coverage.outputs.data).overall }}%
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} 

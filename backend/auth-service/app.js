@@ -42,7 +42,7 @@ app.use((req, res, next) => {
   res.on('finish', () => {
     const duration = process.hrtime(start);
     const durationInSeconds = duration[0] + duration[1] / 1e9;
-    const route = req.baseUrl + (req.route && req.route.path ? req.route.path : '');
+    const route = req.baseUrl + (req.route?.path || '');
     httpRequestCounter.inc({
       method: req.method,
       route: route,
@@ -72,6 +72,17 @@ app.use(express.json());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.get('/api/auth/health', (req, res) => {
+  res.status(200).json({
+    status: "UP",
+    service: "auth-service",
+    timestamp: new Date().toISOString(),
+    env: {
+      port: process.env.PORT,
+      dbHost: process.env.DB_HOST,
+    },
+  });
+});
 
 // Route de vérification de santé
 app.get("/health", (req, res) => {
@@ -94,7 +105,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ msg: "Erreur serveur" });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`✅ auth-service sur http://localhost:${PORT}`)
-);
+module.exports = app;

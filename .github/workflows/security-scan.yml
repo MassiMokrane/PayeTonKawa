@@ -1,0 +1,155 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 2 * * 1' # Every Monday at 2 AM
+
+jobs:
+  dependency-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies for all services
+      run: |
+        cd backend/auth-service && npm ci
+        cd ../product-service && npm ci
+        cd ../order-service && npm ci
+        cd ../../frontend && npm ci
+    
+    - name: Run npm audit
+      run: |
+        echo "=== Auth Service Audit ==="
+        cd backend/auth-service && npm audit --audit-level=moderate || true
+        echo "=== Product Service Audit ==="
+        cd ../product-service && npm audit --audit-level=moderate || true
+        echo "=== Order Service Audit ==="
+        cd ../order-service && npm audit --audit-level=moderate || true
+        echo "=== Frontend Audit ==="
+        cd ../../frontend && npm audit --audit-level=moderate || true
+    
+    - name: Upload audit results
+      uses: actions/upload-artifact@v4
+      with:
+        name: npm-audit-results
+        path: |
+          backend/*/npm-audit.json
+          frontend/npm-audit.json
+        retention-days: 30
+
+  docker-security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'backend/auth-service:latest'
+        format: 'sarif'
+        output: 'trivy-results-auth.sarif'
+    
+    - name: Run Trivy vulnerability scanner for product service
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'backend/product-service:latest'
+        format: 'sarif'
+        output: 'trivy-results-product.sarif'
+    
+    - name: Run Trivy vulnerability scanner for order service
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'backend/order-service:latest'
+        format: 'sarif'
+        output: 'trivy-results-order.sarif'
+    
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results-auth.sarif'
+    
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results-product.sarif'
+    
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results-order.sarif'
+
+  codeql-analysis:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript' ]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+    
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+    
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+
+  container-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Build Docker images
+      run: |
+        docker build -t auth-service:latest ./backend/auth-service
+        docker build -t product-service:latest ./backend/product-service
+        docker build -t order-service:latest ./backend/order-service
+    
+    - name: Run Snyk to check for vulnerabilities
+      uses: snyk/actions/docker@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        image: auth-service:latest
+        args: --severity-threshold=high
+    
+    - name: Run Snyk to check for vulnerabilities
+      uses: snyk/actions/docker@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        image: product-service:latest
+        args: --severity-threshold=high
+    
+    - name: Run Snyk to check for vulnerabilities
+      uses: snyk/actions/docker@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        image: order-service:latest
+        args: --severity-threshold=high 

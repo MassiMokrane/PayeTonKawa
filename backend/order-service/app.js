@@ -5,41 +5,14 @@ const cors = require("cors");
 const helmet = require("helmet");
 const dotenv = require("dotenv");
 const client = require("prom-client");
-const { connectRabbitMQ } = require("./utils/messageBroker");
-const { initializeModels } = require("./models");
-const { connectDB } = require("./config/db");
 const orderRoutes = require("./routes/order.routes.js");
-const { connectAndListenRabbitMQ, publishEvent } = require('./rabbitmq');
 
 
 // Charger .env dès le départ
 dotenv.config();
 
-console.log("=== VARIABLES D'ENVIRONNEMENT ===");
-console.log("DB_HOST:", process.env.DB_HOST);
-console.log("DB_PORT:", process.env.DB_PORT);
-console.log("DB_USER:", process.env.DB_USER);
-console.log("DB_PASSWORD:", process.env.DB_PASSWORD ? "***" : "NON DÉFINI");
-console.log("DB_NAME:", process.env.DB_NAME);
-console.log("PORT:", process.env.PORT);
-console.log("===============================");
-
 
 const app = express();
-
-// Initialisation base de données
-const initDatabase = async () => {
-  try {
-    console.log("🔄 Initialisation de la base de données...");
-    await connectDB();
-    await initializeModels();
-    console.log("✅ Base de données initialisée");
-  } catch (error) {
-    console.error("❌ Erreur lors de l'initialisation de la DB:", error.message);
-    throw error;
-  }
-};
-
 
 // Prometheus métriques
 client.collectDefaultMetrics();
@@ -62,7 +35,7 @@ app.use((req, res, next) => {
   res.on('finish', () => {
     const duration = process.hrtime(start);
     const durationInSeconds = duration[0] + duration[1] / 1e9;
-    const route = req.baseUrl + (req.route && req.route.path ? req.route.path : '');
+    const route = req.baseUrl + (req.route?.path || '');
     httpRequestCounter.inc({
       method: req.method,
       route: route,
@@ -111,61 +84,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ msg: "Erreur serveur", error: err.message });
 });
 
-// === RabbitMQ events ===
-connectAndListenRabbitMQ(async (event) => {
-  if (event.type === 'product_deleted') {
-    const { productId } = event.data;
-    const { Order, OrderItem } = require('./models');
-    // Supprimer toutes les commandes contenant ce produit
-    const ordersToDelete = await Order.findAll({
-      include: [{
-        model: OrderItem,
-        as: 'items',
-        where: { productId }
-      }]
-    });
-    for (const order of ordersToDelete) {
-      await order.destroy();
-      console.log(`🗑️ Commande ${order.id} supprimée car produit ${productId} supprimé`);
-    }
-  }
-  if (event.type === 'user_deleted') {
-    const { userId } = event.data;
-    const { Order } = require('./models');
-    // Supprimer toutes les commandes de l'utilisateur
-    const ordersToDelete = await Order.findAll({ where: { userId } });
-    for (const order of ordersToDelete) {
-      await order.destroy();
-      console.log(`🗑️ Commande ${order.id} supprimée car utilisateur ${userId} supprimé`);
-    }
-    console.log(`✅ Suppression des commandes terminée pour l'utilisateur ${userId}`);
-  }
-});
-
-// Démarrage serveur avec retry
-const PORT = process.env.PORT || 5002;
-
-const startServer = async (retries = 5) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      await initDatabase();
-      await connectRabbitMQ();
-      // listenForMessages(); // Démarre le listener RabbitMQ - REMOVED
-      app.listen(PORT, "0.0.0.0", () => {
-        console.log(`✅ Order-service démarré sur http://localhost:${PORT}`);
-      });
-      return;
-    } catch (error) {
-      console.error(`❌ Tentative ${i + 1}/${retries} échouée:`, error.message);
-      if (i === retries - 1) {
-        console.error("❌ Impossible de démarrer le service après", retries, "tentatives");
-        process.exit(1);
-      }
-      console.log("⏳ Nouvelle tentative dans 5 secondes...");
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-    }
-  }
-};
-
-
-startServer();
+module.exports = app;

@@ -80,6 +80,22 @@ connectAndListenRabbitMQ(async (event) => {
     }
     console.log(`✅ Restock terminé pour ${items.length} produit(s)`);
   }
+  if (event.type === 'order_created') {
+    // Décrémenter le stock pour chaque item de la commande
+    const { items } = event.data;
+    const { Product } = require('./models/product.model');
+    for (const item of items) {
+      const product = await Product.findByPk(item.productId);
+      if (product) {
+        const newQuantity = product.quantity - item.quantity;
+        await product.update({ quantity: newQuantity });
+        console.log(`🛒 Produit ${item.productId}: stock décrémenté de ${item.quantity} (nouveau stock: ${newQuantity})`);
+      } else {
+        console.warn(`⚠️ Produit ${item.productId} non trouvé pour décrémentation`);
+      }
+    }
+    console.log(`✅ Décrémentation du stock terminée pour ${items.length} produit(s)`);
+  }
   if (event.type === 'product_deleted') {
     // Ici, tu pourrais ajouter une logique pour notifier ou nettoyer côté produit
     // Exemple : log ou suppression de données annexes
@@ -103,7 +119,7 @@ app.use((req, res, next) => {
   res.on('finish', () => {
     const duration = process.hrtime(start);
     const durationInSeconds = duration[0] + duration[1] / 1e9;
-    const route = req.baseUrl + (req.route && req.route.path ? req.route.path : '');
+    const route = req.baseUrl + (req.route?.path || '');
     httpRequestCounter.inc({
       method: req.method,
       route: route,
@@ -124,7 +140,6 @@ app.get('/metrics', async (req, res) => {
 });
 
 // Middlewares
-// app.use(helmet());
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -160,15 +175,16 @@ app.use(cors());
 app.use(express.json());
 // Sert les fichiers HTML/CSS/JS de ton frontend
 app.use(express.static(path.join(__dirname, "public")));
+// Sert les images produits depuis le dossier uploads (minuscule)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Ajout du header Cross-Origin-Resource-Policy pour les images
-app.use("/uploads", (req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+// Middleware 404 pour les images manquantes
+app.use((req, res, next) => {
+  if (req.path.startsWith('/uploads/')) {
+    return res.status(404).send('Image not found');
+  }
   next();
-}, express.static(path.join(__dirname, "uploads")));
-// app.use("/uploads", express.static("uploads"));
+});
 
 // Routes
 app.use("/api/products", productRoutes);
@@ -228,7 +244,6 @@ const startServer = async (retries = 5) => {
           `📁 Images accessibles sur http://localhost:${PORT}/uploads/`
         );
       });
-      return;
     } catch (error) {
       console.error(`❌ Tentative ${i + 1}/${retries} échouée:`, error.message);
       if (i === retries - 1) {
@@ -245,5 +260,5 @@ const startServer = async (retries = 5) => {
   }
 };
 
-startServer();
-
+// startServer();
+module.exports = app;

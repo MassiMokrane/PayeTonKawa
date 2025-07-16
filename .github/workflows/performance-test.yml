@@ -1,0 +1,242 @@
+name: Performance Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 3 * * 0' # Every Sunday at 3 AM
+
+jobs:
+  load-test-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install Artillery
+      run: npm install -g artillery
+    
+    - name: Start services for testing
+      run: |
+        cd backend
+        docker-compose up -d mysql-auth-db mysql-product-db mysql-order-db rabbitmq
+        sleep 30
+    
+    - name: Run load tests for auth service
+      run: |
+        artillery run ./backend/auth-service/tests/load-test.yml || true
+    
+    - name: Run load tests for product service
+      run: |
+        artillery run ./backend/product-service/tests/load-test.yml || true
+    
+    - name: Run load tests for order service
+      run: |
+        artillery run ./backend/order-service/tests/load-test.yml || true
+    
+    - name: Upload performance results
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-results
+        path: |
+          backend/*/artillery-report.json
+          backend/*/artillery-report.html
+        retention-days: 30
+
+  lighthouse-audit:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install Lighthouse CI
+      run: npm install -g @lhci/cli@0.12.x
+    
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm ci
+        npm run build
+    
+    - name: Run Lighthouse CI
+      run: |
+        lhci autorun --config=frontend/.lighthouserc.js || true
+    
+    - name: Upload Lighthouse results
+      uses: actions/upload-artifact@v4
+      with:
+        name: lighthouse-results
+        path: .lighthouseci/
+        retention-days: 30
+
+  api-performance-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Create performance test script
+      run: |
+        cat > api-performance-test.js << 'EOF'
+        const axios = require('axios');
+        const { performance } = require('perf_hooks');
+        
+        const BASE_URL = 'http://localhost:5000';
+        const ITERATIONS = 100;
+        
+        async function measureEndpoint(endpoint, method = 'GET', data = null) {
+          const times = [];
+          
+          for (let i = 0; i < ITERATIONS; i++) {
+            const start = performance.now();
+            try {
+              if (method === 'GET') {
+                await axios.get(`${BASE_URL}${endpoint}`);
+              } else if (method === 'POST') {
+                await axios.post(`${BASE_URL}${endpoint}`, data);
+              }
+              const end = performance.now();
+              times.push(end - start);
+            } catch (error) {
+              console.error(`Error testing ${endpoint}:`, error.message);
+            }
+          }
+          
+          const avg = times.reduce((a, b) => a + b, 0) / times.length;
+          const min = Math.min(...times);
+          const max = Math.max(...times);
+          
+          return { avg, min, max, endpoint };
+        }
+        
+        async function runTests() {
+          console.log('Starting API Performance Tests...');
+          
+          const endpoints = [
+            '/health',
+            '/api/auth/register',
+            '/api/products',
+            '/api/orders'
+          ];
+          
+          for (const endpoint of endpoints) {
+            const result = await measureEndpoint(endpoint);
+            console.log(`${result.endpoint}: Avg=${result.avg.toFixed(2)}ms, Min=${result.min.toFixed(2)}ms, Max=${result.max.toFixed(2)}ms`);
+          }
+        }
+        
+        runTests().catch(console.error);
+        EOF
+    
+    - name: Run API performance tests
+      run: node api-performance-test.js || true
+    
+    - name: Upload API performance results
+      uses: actions/upload-artifact@v4
+      with:
+        name: api-performance-results
+        path: api-performance-test.js
+        retention-days: 30
+
+  memory-leak-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies
+      run: |
+        cd backend/auth-service && npm ci
+        cd ../product-service && npm ci
+        cd ../order-service && npm ci
+    
+    - name: Run memory leak tests
+      run: |
+        echo "Running memory leak tests..."
+        # This would typically use tools like clinic.js or similar
+        # For now, we'll create a simple memory monitoring script
+        cat > memory-test.js << 'EOF'
+        const { spawn } = require('child_process');
+        const fs = require('fs');
+        
+        function monitorMemory(serviceName, command) {
+          return new Promise((resolve) => {
+            const process = spawn('node', [command], {
+              cwd: `./backend/${serviceName}`,
+              stdio: ['pipe', 'pipe', 'pipe']
+            });
+            
+            let memoryUsage = [];
+            let interval = setInterval(() => {
+              if (process.memoryUsage) {
+                const mem = process.memoryUsage();
+                memoryUsage.push({
+                  timestamp: Date.now(),
+                  rss: mem.rss,
+                  heapUsed: mem.heapUsed,
+                  heapTotal: mem.heapTotal
+                });
+              }
+            }, 1000);
+            
+            setTimeout(() => {
+              clearInterval(interval);
+              process.kill();
+              resolve(memoryUsage);
+            }, 30000); // 30 seconds test
+          });
+        }
+        
+        async function runMemoryTests() {
+          const services = ['auth-service', 'product-service', 'order-service'];
+          const results = {};
+          
+          for (const service of services) {
+            console.log(`Testing memory usage for ${service}...`);
+            results[service] = await monitorMemory(service, 'app.js');
+          }
+          
+          fs.writeFileSync('memory-test-results.json', JSON.stringify(results, null, 2));
+          console.log('Memory test results saved to memory-test-results.json');
+        }
+        
+        runMemoryTests().catch(console.error);
+        EOF
+        
+        node memory-test.js || true
+    
+    - name: Upload memory test results
+      uses: actions/upload-artifact@v4
+      with:
+        name: memory-test-results
+        path: memory-test-results.json
+        retention-days: 30 

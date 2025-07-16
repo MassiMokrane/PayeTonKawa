@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 5001
 
 # Démarrer l'application
-CMD ["node", "app.js"]
+CMD ["node", "server.js"]

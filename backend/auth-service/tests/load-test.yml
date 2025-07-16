@@ -1,0 +1,33 @@
+config:
+  target: 'http://localhost:5000'
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Warm up phase"
+    - duration: 120
+      arrivalRate: 50
+      name: "Sustained load"
+    - duration: 60
+      arrivalRate: 100
+      name: "Peak load"
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+
+scenarios:
+  - name: "Auth Service Load Test"
+    weight: 100
+    flow:
+      - get:
+          url: "/health"
+      - post:
+          url: "/api/auth/register"
+          json:
+            username: "testuser{{ $randomString() }}"
+            email: "test{{ $randomString() }}@example.com"
+            password: "password123"
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123" 

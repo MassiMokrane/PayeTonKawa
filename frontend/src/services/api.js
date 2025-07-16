@@ -17,10 +17,8 @@ const authAPI = axios.create({
 
 // Instance axios pour les produits
 const productAPI = axios.create({
-  baseURL: `${PRODUCT_API_URL}/api/products`,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  baseURL: `${PRODUCT_API_URL}/api/products`
+  // headers: { "Content-Type": "application/json" }, // SUPPRIMÉ pour permettre l'upload d'image
 });
 
 // Instance axios pour les commandes

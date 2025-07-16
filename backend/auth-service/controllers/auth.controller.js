@@ -89,3 +89,27 @@ exports.getUserById = async (req, res) => {
   }
 };
 
+exports.updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const [updated] = await User.update(updateData, { where: { id } });
+    if (!updated) return res.status(404).json({ msg: "Utilisateur non trouvé" });
+    const user = await User.findByPk(id, { attributes: { exclude: ["password"] } });
+    res.status(200).json(user);
+  } catch (err) {
+    res.status(500).json({ msg: "Erreur serveur" });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await User.destroy({ where: { id } });
+    if (!deleted) return res.status(404).json({ msg: "Utilisateur non trouvé" });
+    res.status(200).json({ msg: "Utilisateur supprimé" });
+  } catch (err) {
+    res.status(500).json({ msg: "Erreur serveur" });
+  }
+};
+
