@@ -10,8 +10,6 @@ const { initializeModels } = require("./models");
 const { connectDB } = require("./config/db");
 const orderRoutes = require("./routes/order.routes.js");
 
-
-
 // Charger .env dès le départ
 dotenv.config();
 
@@ -24,7 +22,6 @@ console.log("DB_NAME:", process.env.DB_NAME);
 console.log("PORT:", process.env.PORT);
 console.log("===============================");
 
-
 const app = express();
 
 // Initialisation base de données
@@ -35,11 +32,13 @@ const initDatabase = async () => {
     await initializeModels();
     console.log("✅ Base de données initialisée");
   } catch (error) {
-    console.error("❌ Erreur lors de l'initialisation de la DB:", error.message);
+    console.error(
+      "❌ Erreur lors de l'initialisation de la DB:",
+      error.message
+    );
     throw error;
   }
 };
-
 
 // Prometheus métriques
 client.collectDefaultMetrics();
@@ -92,7 +91,11 @@ const startServer = async (retries = 5) => {
     } catch (error) {
       console.error(`❌ Tentative ${i + 1}/${retries} échouée:`, error.message);
       if (i === retries - 1) {
-        console.error("❌ Impossible de démarrer le service après", retries, "tentatives");
+        console.error(
+          "❌ Impossible de démarrer le service après",
+          retries,
+          "tentatives"
+        );
         process.exit(1);
       }
       console.log("⏳ Nouvelle tentative dans 5 secondes...");
@@ -100,6 +103,5 @@ const startServer = async (retries = 5) => {
     }
   }
 };
-
 
 startServer();
