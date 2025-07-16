@@ -1,0 +1,14 @@
+module.exports = {
+  testEnvironment: 'node',
+  testMatch: ['**/tests/**/*.test.js'],
+  verbose: true,
+  testTimeout: 15000,
+  collectCoverageFrom: [
+    '**/*.js',
+    '!**/node_modules/**',
+    '!**/tests/**',
+    '!jest.config.js'
+  ],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html']
+};

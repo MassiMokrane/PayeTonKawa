@@ -1,0 +1,97 @@
+name: Ì≥¶ Product Service CI/CD
+
+on:
+  push:
+    branches: [ main, develop, Mokrane_UP ]
+    paths: 
+      - 'backend/product-service/**'
+      - '.github/workflows/product-service-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/product-service/**'
+
+jobs:
+  test-product-service:
+    runs-on: ubuntu-latest
+    name: Ì∑™ Build & Test Product Service
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: productdb
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+        ports:
+          - 3308:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+    - name: ÔøΩÔøΩ Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Ìø¢ Setup Node.js 18
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: backend/product-service/package-lock.json
+
+    - name: Ì≥¶ Install Dependencies
+      working-directory: backend/product-service
+      run: |
+        echo "Ì≥¶ Installing npm packages for Product Service..."
+        npm ci
+        echo "‚úÖ Dependencies installed successfully"
+
+    - name: ÔøΩÔøΩ Create Upload Directory
+      working-directory: backend/product-service
+      run: |
+        echo "Ì≥Å Creating uploads directory..."
+        mkdir -p uploads
+        echo "‚úÖ Upload directory created"
+
+    - name: ‚è≥ Wait for MySQL
+      run: |
+        echo "‚è≥ Waiting for MySQL to be ready..."
+        for i in {1..30}; do
+          if mysqladmin ping -h 127.0.0.1 -P 3308 --silent; then
+            echo "‚úÖ MySQL is ready!"
+            break
+          fi
+          echo "‚è≥ MySQL not ready yet... ($i/30)"
+          sleep 3
+        done
+
+    - name: Ì∑™ Run Tests
+      working-directory: backend/product-service
+      env:
+        NODE_ENV: test
+        DB_HOST: 127.0.0.1
+        DB_PORT: 3308
+        DB_USER: root
+        DB_PASSWORD: root
+        DB_NAME: productdb
+        PORT: 5001
+      run: |
+        echo "Ì∑™ Running tests for Product Service..."
+        npm test
+        echo "‚úÖ All tests passed!"
+
+    - name: Ì∞≥ Build Docker Image
+      working-directory: backend/product-service
+      run: |
+        echo "Ì∞≥ Building Docker image for Product Service..."
+        docker build -t payetonkawa-product:${{ github.sha }} .
+        echo "‚úÖ Docker image built successfully!"
+
+    - name: Ì¥í Security Audit
+      working-directory: backend/product-service
+      run: |
+        echo "Ì¥í Running security audit..."
+        npm audit --audit-level high || echo "‚ö†Ô∏è Security audit completed with warnings"
