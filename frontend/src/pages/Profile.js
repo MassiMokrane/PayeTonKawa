@@ -23,7 +23,7 @@ const Profile = () => {
       if (!user?.id) return;
 
       try {
-        const data = await userService.getUserById(user.id);
+        const data = await userService.getMyProfile(); // 👈 Utilise la nouvelle méthode
         setUserData(data);
         setFormData({
           nom: data.nom,
@@ -84,7 +84,7 @@ const Profile = () => {
     setLoading(true);
 
     try {
-      await userService.updateUser(user.id, formData);
+      await userService.updateMyProfile(formData); // 👈 Utilise la nouvelle méthode
       setUserData({ ...userData, ...formData });
       toast.success("Profil mis à jour avec succès !");
       setIsEditing(false);

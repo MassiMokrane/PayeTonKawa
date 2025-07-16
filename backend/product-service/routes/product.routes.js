@@ -6,6 +6,7 @@ const {
   getProducts,
   getProductById,
   updateProduct,
+  updateProductStock,
   deleteProduct,
 } = require("../controllers/product.controller");
 
@@ -14,6 +15,7 @@ router.post("/", isAuthenticated, isAdmin, upload.single("image"), createProduct
 router.get("/", getProducts);
 router.get("/:id", getProductById);
 router.put("/:id", isAuthenticated, isAdmin, upload.single("image"), updateProduct);
+router.put("/:id/stock", updateProductStock); // Route pour mettre à jour le stock (pas d'auth requise)
 router.delete("/:id", isAuthenticated, isAdmin, deleteProduct);
 
 module.exports = router;

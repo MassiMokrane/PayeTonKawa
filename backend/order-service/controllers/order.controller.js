@@ -1,41 +1,27 @@
 const { Order, OrderItem } = require("../models");
 const { publishEvent } = require("../rabbitmq");
+const { getProductDetails, updateProductStock, publishToQueue } = require("../utils/api");
 const client = require('prom-client');
 
 const businessEventCounter = new client.Counter({
   name: 'business_events_total',
-  help: 'Nombre total d’événements métier publiés',
+  help: 'Nombre total d\'événements métier publiés',
   labelNames: ['event_type', 'service']
 });
 
 
 exports.createOrder = async (req, res) => {
   const { userId, items } = req.body;
-
-  // Validation: items ne doit contenir que productId et quantity
   if (!Array.isArray(items) || items.length === 0) {
-    return res
-      .status(400)
-      .json({ error: "La liste des produits est vide ou invalide" });
+    return res.status(400).json({ error: "La liste des produits est vide ou invalide" });
   }
-
-  // Vérifier que chaque item a bien productId et quantity
   for (const item of items) {
     if (!item.productId || !item.quantity || item.quantity <= 0) {
-      return res.status(400).json({
-        error: "Chaque produit doit avoir un productId et une quantity valide",
-      });
+      return res.status(400).json({ error: "Chaque produit doit avoir un productId et une quantity valide" });
     }
   }
-
   try {
-    // Vérifier que l'utilisateur existe
-    const userExists = await checkUserExists(userId);
-    if (!userExists) {
-      return res.status(400).json({ error: "Utilisateur inexistant" });
-    }
-
-    // Préparer les données des produits avec leurs prix
+    // Récupérer les prix des produits depuis le service produit
     const itemsWithPrices = [];
     let totalOrder = 0;
 
@@ -68,28 +54,14 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // Debug: Vérifier le calcul du total
-    console.log("=== DEBUG CALCUL TOTAL ===");
-    let totalDebug = 0;
-    itemsWithPrices.forEach((item, index) => {
-      console.log(
-        `Item ${index + 1}: ${item.unitPrice} × ${item.quantity} = ${
-          item.totalPrice
-        }`
-      );
-      totalDebug += item.totalPrice;
-    });
-    console.log(`Total final: ${totalDebug}`);
-    console.log("==========================");
-
-    // Créer la commande
+    // Création de la commande
     const order = await Order.create({
       userId,
       total: totalOrder,
       status: "pending",
     });
 
-    // Créer les items de la commande
+    // Créer les items de la commande avec les prix corrects
     const orderItems = itemsWithPrices.map((item) => ({
       orderId: order.id,
       productId: item.productId,
@@ -99,9 +71,6 @@ exports.createOrder = async (req, res) => {
     }));
 
     await OrderItem.bulkCreate(orderItems);
-
-    // Mettre à jour le total de la commande après création des items
-    await order.update({ total: totalOrder });
 
     // Mettre à jour le stock des produits
     for (const item of itemsWithPrices) {
@@ -129,67 +98,6 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // Récupérer la commande complète avec ses items
-    const createdOrder = await Order.findByPk(order.id, {
-      include: [
-        {
-          model: OrderItem,
-          as: "items",
-          attributes: [
-            "id",
-            "productId",
-            "quantity",
-            "unitPrice",
-            "totalPrice",
-          ],
-        },
-      ],
-    });
-
-    res.status(201).json({
-      message: "Commande créée avec succès",
-      order: createdOrder,
-    });
-  } catch (error) {
-    console.error("❌ Erreur création commande:", error);
-    res.status(500).json({ error: error.message });
-  }
-};
-
-
-exports.createOrder = async (req, res) => {
-  const { userId, items } = req.body;
-  if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ error: "La liste des produits est vide ou invalide" });
-  }
-  for (const item of items) {
-    if (!item.productId || !item.quantity || item.quantity <= 0) {
-      return res.status(400).json({ error: "Chaque produit doit avoir un productId et une quantity valide" });
-    }
-  }
-  try {
-    // SUPPRESSION : vérification utilisateur et stock via HTTP
-    // La logique de vérification d'utilisateur et de stock est désormais déléguée aux consommateurs RabbitMQ
-    // Création de la commande
-    const order = await Order.create({
-      userId,
-      total: 0, // sera mis à jour après création des items
-      status: "pending",
-    });
-    let totalOrder = 0;
-    const orderItems = items.map((item) => {
-      const itemTotal = item.unitPrice ? item.unitPrice * item.quantity : 0;
-      totalOrder += itemTotal;
-      return {
-        orderId: order.id,
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice || 0,
-        totalPrice: itemTotal,
-      };
-    });
-    await OrderItem.bulkCreate(orderItems);
-    await order.update({ total: totalOrder });
     const createdOrder = await Order.findByPk(order.id, {
       include: [
         {
@@ -199,9 +107,11 @@ exports.createOrder = async (req, res) => {
         },
       ],
     });
+
     // Publier l'événement order_created
     publishEvent('order_created', { orderId: order.id, userId, items, total: totalOrder, date: new Date() });
     businessEventCounter.inc({ event_type: 'order_created', service: 'order-service' });
+    
     res.status(201).json({ message: "Commande créée avec succès", order: createdOrder });
   } catch (error) {
     console.error("❌ Erreur création commande:", error);

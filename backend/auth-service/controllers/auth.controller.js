@@ -113,3 +113,50 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+// Nouveau : Récupérer les infos de l'utilisateur connecté
+exports.getMyProfile = async (req, res) => {
+  try {
+    const userId = req.user.id; // Récupéré du token JWT
+
+    const user = await User.findByPk(userId, {
+      attributes: { exclude: ["password"] },
+    });
+
+    if (!user) {
+      return res.status(404).json({ msg: "Utilisateur non trouvé" });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error("Erreur récupération profil utilisateur:", err);
+    res.status(500).json({ msg: "Erreur serveur" });
+  }
+};
+
+// Nouveau : Mettre à jour les infos de l'utilisateur connecté
+exports.updateMyProfile = async (req, res) => {
+  try {
+    const userId = req.user.id; // Récupéré du token JWT
+    const updateData = req.body;
+
+    // Empêcher la modification du rôle (sécurité)
+    delete updateData.role;
+    delete updateData.password; // Le changement de mot de passe sera géré séparément
+
+    const [updated] = await User.update(updateData, { where: { id: userId } });
+    
+    if (!updated) {
+      return res.status(404).json({ msg: "Utilisateur non trouvé" });
+    }
+
+    const user = await User.findByPk(userId, { 
+      attributes: { exclude: ["password"] } 
+    });
+
+    res.status(200).json(user);
+  } catch (err) {
+    console.error("Erreur mise à jour profil utilisateur:", err);
+    res.status(500).json({ msg: "Erreur serveur" });
+  }
+};
+

@@ -89,6 +89,36 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
+exports.updateProductStock = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { quantity } = req.body;
+
+    if (quantity === undefined || quantity < 0) {
+      return res.status(400).json({ error: "Quantité invalide" });
+    }
+
+    const product = await Product.findByPk(id);
+    if (!product) {
+      return res.status(404).json({ error: "Produit non trouvé" });
+    }
+
+    await product.update({ quantity });
+    
+    res.json({ 
+      message: "Stock mis à jour avec succès",
+      product: {
+        id: product.id,
+        name: product.name,
+        quantity: product.quantity
+      }
+    });
+  } catch (error) {
+    console.error("Erreur mise à jour stock:", error);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+};
+
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findByPk(req.params.id);
