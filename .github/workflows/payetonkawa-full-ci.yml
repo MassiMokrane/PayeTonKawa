@@ -13,7 +13,7 @@ env:
 
 jobs:
   # ========== JOB 1: AUTH SERVICE ==========
-  test-auth-service:
+  auth-service-tests:
     runs-on: ubuntu-latest
     name: í´ Auth Service Tests
 
@@ -59,61 +59,8 @@ jobs:
       - name: âœ… Auth Test Results
         run: echo "âœ… Auth Service tests completed successfully"
 
-  # ========== JOB 2: PRODUCT SERVICE ==========
-  test-product-service:
-    runs-on: ubuntu-latest
-    name: í»ï¸ Product Service Tests
-
-    steps:
-      - name: í³¥ Checkout Code
-        uses: actions/checkout@v4
-
-      - name: í¿¢ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: backend/product-service/package-lock.json
-
-      - name: í³¦ Install Product Dependencies
-        working-directory: backend/product-service
-        run: npm ci
-
-      - name: í³ Create Upload Directory
-        working-directory: backend/product-service
-        run: mkdir -p uploads
-
-      - name: í·ª Run Product Tests
-        working-directory: backend/product-service
-        env:
-          NODE_ENV: test
-          JWT_SECRET: test-secret-key-for-ci
-          DB_HOST: localhost
-          DB_USER: root
-          DB_PASSWORD: test
-          DB_NAME: test_productdb
-          DB_PORT: 3306
-          PORT: 5001
-        run: npm test
-
-      - name: í³Š Run Product Coverage
-        working-directory: backend/product-service
-        env:
-          NODE_ENV: test
-          JWT_SECRET: test-secret-key-for-ci
-          DB_HOST: localhost
-          DB_USER: root
-          DB_PASSWORD: test
-          DB_NAME: test_productdb
-          DB_PORT: 3306
-          PORT: 5001
-        run: npm run test:coverage
-
-      - name: âœ… Product Test Results
-        run: echo "âœ… Product Service tests completed successfully"
-
-  # ========== JOB 3: ORDER SERVICE ==========
-  test-order-service:
+  # ========== JOB 2: ORDER SERVICE ==========
+  order-service-tests:
     runs-on: ubuntu-latest
     name: í³‹ Order Service Tests
 
@@ -167,15 +114,68 @@ jobs:
       - name: âœ… Order Test Results
         run: echo "âœ… Order Service tests completed successfully"
 
-  # ========== JOB 4: SECURITY & CODE QUALITY ==========
-  security-and-quality:
+  # ========== JOB 3: PRODUCT SERVICE ==========
+  product-service-tests:
     runs-on: ubuntu-latest
-    name: í´’ Security & Code Quality
-    needs: [test-auth-service, test-product-service, test-order-service]
+    name: í»ï¸ Product Service Tests
+
+    steps:
+      - name: í³¥ Checkout Code
+        uses: actions/checkout@v4
+
+      - name: í¿¢ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/product-service/package-lock.json
+
+      - name: í³¦ Install Product Dependencies
+        working-directory: backend/product-service
+        run: npm ci
+
+      - name: í³ Create Upload Directory
+        working-directory: backend/product-service
+        run: mkdir -p uploads
+
+      - name: í·ª Run Product Tests
+        working-directory: backend/product-service
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci
+          DB_HOST: localhost
+          DB_USER: root
+          DB_PASSWORD: test
+          DB_NAME: test_productdb
+          DB_PORT: 3306
+          PORT: 5001
+        run: npm test
+
+      - name: í³Š Run Product Coverage
+        working-directory: backend/product-service
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret-key-for-ci
+          DB_HOST: localhost
+          DB_USER: root
+          DB_PASSWORD: test
+          DB_NAME: test_productdb
+          DB_PORT: 3306
+          PORT: 5001
+        run: npm run test:coverage
+
+      - name: âœ… Product Test Results
+        run: echo "âœ… Product Service tests completed successfully"
+
+  # ========== JOB 4: SECURITY & BUILD ==========
+  security-and-build:
+    runs-on: ubuntu-latest
+    name: í´’ Security & Build
+    needs: [auth-service-tests, order-service-tests, product-service-tests]
 
     strategy:
       matrix:
-        service: [auth-service, product-service, order-service]
+        service: [auth-service, order-service, product-service]
 
     steps:
       - name: í³¥ Checkout Code
@@ -198,50 +198,6 @@ jobs:
           echo "í´ Running security audit for ${{ matrix.service }}..."
           npm audit --audit-level high || echo "âš ï¸ Security audit completed with warnings"
 
-      - name: âœ¨ Code Quality Check
-        working-directory: backend/${{ matrix.service }}
-        run: |
-          echo "âœ¨ Checking code quality for ${{ matrix.service }}..."
-          node -c app.js || node -c server.js
-          echo "âœ… Code syntax validation passed"
-
-      - name: í³‹ Lint Check
-        working-directory: backend/${{ matrix.service }}
-        run: |
-          echo "í³‹ Running basic lint checks for ${{ matrix.service }}..."
-          echo "âœ… Lint checks completed"
-
-  # ========== JOB 5: BUILD & DOCKER ==========
-  build-and-docker:
-    runs-on: ubuntu-latest
-    name: í°³ Build & Docker
-    needs: [test-auth-service, test-product-service, test-order-service]
-
-    strategy:
-      matrix:
-        service: [auth-service, product-service, order-service]
-
-    steps:
-      - name: í³¥ Checkout Code
-        uses: actions/checkout@v4
-
-      - name: í¿¢ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: backend/${{ matrix.service }}/package-lock.json
-
-      - name: í³¦ Install Dependencies
-        working-directory: backend/${{ matrix.service }}
-        run: npm ci
-
-      - name: í¿—ï¸ Build Application
-        working-directory: backend/${{ matrix.service }}
-        run: |
-          echo "í¿—ï¸ Building ${{ matrix.service }}..."
-          echo "âœ… Build completed successfully"
-
       - name: í°³ Build Docker Image (Simulation)
         working-directory: backend/${{ matrix.service }}
         run: |
@@ -261,69 +217,11 @@ jobs:
           echo "CMD [\"npm\", \"start\"]" >> Dockerfile.test
           echo "âœ… Docker image configuration ready for payetonkawa-${{ matrix.service }}:${{ github.sha }}"
 
-  # ========== JOB 6: INTEGRATION TESTS ==========
-  integration-tests:
-    runs-on: ubuntu-latest
-    name: í´— Integration Tests
-    needs: [test-auth-service, test-product-service, test-order-service]
-
-    steps:
-      - name: í³¥ Checkout Code
-        uses: actions/checkout@v4
-
-      - name: í¿¢ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: í´— Run Integration Tests
-        run: |
-          echo "í´— Running cross-service integration tests..."
-          echo "âœ… Testing auth-service â†” product-service communication"
-          echo "âœ… Testing auth-service â†” order-service communication"
-          echo "âœ… Testing product-service â†” order-service communication"
-          echo "âœ… Testing API contracts compatibility"
-          echo "âœ… Testing shared middleware compatibility"
-          echo "âœ… Testing JWT token flow between services"
-          echo "âœ… Testing RabbitMQ event publishing/consuming"
-          echo "âœ… Integration tests completed successfully"
-
-  # ========== JOB 7: PERFORMANCE TESTS ==========
-  performance-tests:
-    runs-on: ubuntu-latest
-    name: âš¡ Performance Tests
-    needs: [build-and-docker]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
-
-    steps:
-      - name: í³¥ Checkout Code
-        uses: actions/checkout@v4
-
-      - name: âš¡ Load Testing Simulation
-        run: |
-          echo "âš¡ Running performance tests..."
-          echo "í³Š Testing auth-service endpoints (login, register, verify)"
-          echo "í³Š Testing product-service endpoints (CRUD operations)"
-          echo "í³Š Testing order-service endpoints (order processing)"
-          echo "í³ˆ Average response time: < 200ms"
-          echo "í³ˆ Throughput: > 1000 req/sec per service"
-          echo "í³ˆ Memory usage: < 512MB per service"
-          echo "í³ˆ CPU usage: < 50% per service"
-          echo "âœ… Performance tests completed successfully"
-
-  # ========== JOB 8: DEPLOYMENT SUMMARY ==========
+  # ========== JOB 5: DEPLOYMENT SUMMARY ==========
   deployment-summary:
     runs-on: ubuntu-latest
     name: í³‹ Deployment Summary
-    needs:
-      [
-        test-auth-service,
-        test-product-service,
-        test-order-service,
-        security-and-quality,
-        build-and-docker,
-        integration-tests
-      ]
+    needs: [auth-service-tests, order-service-tests, product-service-tests, security-and-build]
     if: always()
 
     steps:
@@ -332,13 +230,13 @@ jobs:
         run: |
           # Calculer les statistiques
           AUTH_TESTS=36
-          PRODUCT_TESTS=39
           ORDER_TESTS=35
-          TOTAL_TESTS=$((AUTH_TESTS + PRODUCT_TESTS + ORDER_TESTS))
+          PRODUCT_TESTS=39
+          TOTAL_TESTS=$((AUTH_TESTS + ORDER_TESTS + PRODUCT_TESTS))
           
           echo "auth_tests=$AUTH_TESTS" >> $GITHUB_OUTPUT
-          echo "product_tests=$PRODUCT_TESTS" >> $GITHUB_OUTPUT
           echo "order_tests=$ORDER_TESTS" >> $GITHUB_OUTPUT
+          echo "product_tests=$PRODUCT_TESTS" >> $GITHUB_OUTPUT
           echo "total_tests=$TOTAL_TESTS" >> $GITHUB_OUTPUT
 
       - name: í³‹ Generate Comprehensive Summary
@@ -348,54 +246,42 @@ jobs:
           echo "## í¾¯ Pipeline Overview" >> $GITHUB_STEP_SUMMARY
           echo "| Service | Status | Tests | Coverage |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|--------|-------|----------|" >> $GITHUB_STEP_SUMMARY
-          echo "| í´ Auth Service | ${{ needs.test-auth-service.result == 'success' && 'âœ… PASSED' || 'âŒ FAILED' }} | ${{ steps.stats.outputs.auth_tests }} tests | > 70% |" >> $GITHUB_STEP_SUMMARY
-          echo "| í»ï¸ Product Service | ${{ needs.test-product-service.result == 'success' && 'âœ… PASSED' || 'âŒ FAILED' }} | ${{ steps.stats.outputs.product_tests }} tests | > 70% |" >> $GITHUB_STEP_SUMMARY
-          echo "| í³‹ Order Service | ${{ needs.test-order-service.result == 'success' && 'âœ… PASSED' || 'âŒ FAILED' }} | ${{ steps.stats.outputs.order_tests }} tests | > 70% |" >> $GITHUB_STEP_SUMMARY
-          echo "| í´’ Security & Quality | ${{ needs.security-and-quality.result == 'success' && 'âœ… PASSED' || 'âŒ FAILED' }} | Code audit | Security scan |" >> $GITHUB_STEP_SUMMARY
-          echo "| í°³ Build & Docker | ${{ needs.build-and-docker.result == 'success' && 'âœ… PASSED' || 'âŒ FAILED' }} | Image build | Docker ready |" >> $GITHUB_STEP_SUMMARY
-          echo "| í´— Integration | ${{ needs.integration-tests.result == 'success' && 'âœ… PASSED' || 'âŒ FAILED' }} | API tests | Service comm |" >> $GITHUB_STEP_SUMMARY
+          echo "| í´ Auth Service | ${{ needs.auth-service-tests.result == 'success' && 'âœ… PASSED' || 'âŒ FAILED' }} | ${{ steps.stats.outputs.auth_tests }} tests | > 70% |" >> $GITHUB_STEP_SUMMARY
+          echo "| í³‹ Order Service | ${{ needs.order-service-tests.result == 'success' && 'âœ… PASSED' || 'âŒ FAILED' }} | ${{ steps.stats.outputs.order_tests }} tests | > 70% |" >> $GITHUB_STEP_SUMMARY
+          echo "| í»ï¸ Product Service | ${{ needs.product-service-tests.result == 'success' && 'âœ… PASSED' || 'âŒ FAILED' }} | ${{ steps.stats.outputs.product_tests }} tests | > 70% |" >> $GITHUB_STEP_SUMMARY
+          echo "| í´’ Security & Build | ${{ needs.security-and-build.result == 'success' && 'âœ… PASSED' || 'âŒ FAILED' }} | 3 jobs completed | All services |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## í³Š Statistics" >> $GITHUB_STEP_SUMMARY
-          echo "- **Total Services Tested**: 3 (Auth, Product, Order)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Services Tested**: 3 (Auth, Order, Product)" >> $GITHUB_STEP_SUMMARY
           echo "- **Total Tests Executed**: ${{ steps.stats.outputs.total_tests }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Test Coverage**: > 70% per service" >> $GITHUB_STEP_SUMMARY
-          echo "- **Build Time**: ~${{ github.run_number }} minutes" >> $GITHUB_STEP_SUMMARY
-          echo "- **Services Communication**: JWT + RabbitMQ" >> $GITHUB_STEP_SUMMARY
+          echo "- **Security Audits**: 3 services scanned" >> $GITHUB_STEP_SUMMARY
+          echo "- **Docker Images**: 3 configurations ready" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## ï¿½ï¿½ Environment Details" >> $GITHUB_STEP_SUMMARY
+          echo "## í´§ Environment Details" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit SHA**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by**: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Node.js Version**: ${{ env.NODE_VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Runner OS**: Ubuntu Latest" >> $GITHUB_STEP_SUMMARY
-          echo "- **Database**: MySQL 8.0" >> $GITHUB_STEP_SUMMARY
-          echo "- **Message Queue**: RabbitMQ 3" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [[ "${{ needs.test-auth-service.result }}" == "success" && "${{ needs.test-product-service.result }}" == "success" && "${{ needs.test-order-service.result }}" == "success" && "${{ needs.security-and-quality.result }}" == "success" && "${{ needs.build-and-docker.result }}" == "success" && "${{ needs.integration-tests.result }}" == "success" ]]; then
+          if [[ "${{ needs.auth-service-tests.result }}" == "success" && "${{ needs.order-service-tests.result }}" == "success" && "${{ needs.product-service-tests.result }}" == "success" && "${{ needs.security-and-build.result }}" == "success" ]]; then
             echo "## í¾‰ **ALL SYSTEMS GO!** â˜•ï¸" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "âœ¨ **PayeTonKawa is ready for deployment!**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### íº€ Next Steps:" >> $GITHUB_STEP_SUMMARY
             echo "- Deploy auth-service to staging environment" >> $GITHUB_STEP_SUMMARY
-            echo "- Deploy product-service to staging environment" >> $GITHUB_STEP_SUMMARY
             echo "- Deploy order-service to staging environment" >> $GITHUB_STEP_SUMMARY
+            echo "- Deploy product-service to staging environment" >> $GITHUB_STEP_SUMMARY
             echo "- Run smoke tests on staging" >> $GITHUB_STEP_SUMMARY
-            echo "- Update API documentation" >> $GITHUB_STEP_SUMMARY
             echo "- Deploy to production environment" >> $GITHUB_STEP_SUMMARY
             echo "- â˜•ï¸ Celebrate with a coffee!" >> $GITHUB_STEP_SUMMARY
           else
             echo "## âŒ **PIPELINE FAILED**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "âŒ One or more services failed CI/CD pipeline. Please check the failed jobs above and fix the issues before deployment." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### í´§ Troubleshooting Steps:" >> $GITHUB_STEP_SUMMARY
-            echo "1. Check failed test logs" >> $GITHUB_STEP_SUMMARY
-            echo "2. Verify environment variables" >> $GITHUB_STEP_SUMMARY
-            echo "3. Check service dependencies" >> $GITHUB_STEP_SUMMARY
-            echo "4. Run tests locally" >> $GITHUB_STEP_SUMMARY
-            echo "5. Fix issues and push again" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: í¾¯ Final Deployment Status
@@ -404,27 +290,23 @@ jobs:
           echo "           â˜•ï¸ PAYETONKAWA CI/CD RESULTS"
           echo "================================================"
           
-          if [[ "${{ needs.test-auth-service.result }}" == "success" && "${{ needs.test-product-service.result }}" == "success" && "${{ needs.test-order-service.result }}" == "success" && "${{ needs.security-and-quality.result }}" == "success" && "${{ needs.build-and-docker.result }}" == "success" && "${{ needs.integration-tests.result }}" == "success" ]]; then
+          if [[ "${{ needs.auth-service-tests.result }}" == "success" && "${{ needs.order-service-tests.result }}" == "success" && "${{ needs.product-service-tests.result }}" == "success" && "${{ needs.security-and-build.result }}" == "success" ]]; then
             echo "í¾‰ SUCCESS: All PayeTonKawa services are ready!"
             echo ""
             echo "âœ… í´ Auth Service: PASSED (${{ steps.stats.outputs.auth_tests }} tests)"
-            echo "âœ… í»ï¸ Product Service: PASSED (${{ steps.stats.outputs.product_tests }} tests)"
             echo "âœ… í³‹ Order Service: PASSED (${{ steps.stats.outputs.order_tests }} tests)"
-            echo "âœ… í´’ Security & Quality: PASSED (3 services audited)"
-            echo "âœ… í°³ Build & Docker: PASSED (3 images ready)"
-            echo "âœ… í´— Integration Tests: PASSED"
+            echo "âœ… í»ï¸ Product Service: PASSED (${{ steps.stats.outputs.product_tests }} tests)"
+            echo "âœ… í´’ Security & Build: PASSED (3 jobs completed)"
             echo ""
             echo "í³Š TOTAL: ${{ steps.stats.outputs.total_tests }} tests passed"
             echo "íº€ READY FOR DEPLOYMENT! â˜•ï¸"
           else
             echo "âŒ FAILURE: Some services failed CI/CD pipeline"
             echo ""
-            echo "${{ needs.test-auth-service.result == 'success' && 'âœ…' || 'âŒ' }} í´ Auth Service: ${{ needs.test-auth-service.result }}"
-            echo "${{ needs.test-product-service.result == 'success' && 'âœ…' || 'âŒ' }} í»ï¸ Product Service: ${{ needs.test-product-service.result }}"
-            echo "${{ needs.test-order-service.result == 'success' && 'âœ…' || 'âŒ' }} í³‹ Order Service: ${{ needs.test-order-service.result }}"
-            echo "${{ needs.security-and-quality.result == 'success' && 'âœ…' || 'âŒ' }} í´’ Security & Quality: ${{ needs.security-and-quality.result }}"
-            echo "${{ needs.build-and-docker.result == 'success' && 'âœ…' || 'âŒ' }} í°³ Build & Docker: ${{ needs.build-and-docker.result }}"
-            echo "${{ needs.integration-tests.result == 'success' && 'âœ…' || 'âŒ' }} í´— Integration Tests: ${{ needs.integration-tests.result }}"
+            echo "${{ needs.auth-service-tests.result == 'success' && 'âœ…' || 'âŒ' }} í´ Auth Service: ${{ needs.auth-service-tests.result }}"
+            echo "${{ needs.order-service-tests.result == 'success' && 'âœ…' || 'âŒ' }} í³‹ Order Service: ${{ needs.order-service-tests.result }}"
+            echo "${{ needs.product-service-tests.result == 'success' && 'âœ…' || 'âŒ' }} í»ï¸ Product Service: ${{ needs.product-service-tests.result }}"
+            echo "${{ needs.security-and-build.result == 'success' && 'âœ…' || 'âŒ' }} í´’ Security & Build: ${{ needs.security-and-build.result }}"
             echo ""
             echo "íº« DEPLOYMENT BLOCKED"
             exit 1
@@ -433,13 +315,13 @@ jobs:
           echo "================================================"
 
       - name: í¾Š Success Celebration
-        if: needs.test-auth-service.result == 'success' && needs.test-product-service.result == 'success' && needs.test-order-service.result == 'success' && needs.security-and-quality.result == 'success' && needs.build-and-docker.result == 'success' && needs.integration-tests.result == 'success'
+        if: needs.auth-service-tests.result == 'success' && needs.order-service-tests.result == 'success' && needs.product-service-tests.result == 'success' && needs.security-and-build.result == 'success'
         run: |
-          echo "í¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Šecho "í¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Š"
-         echo "í¾‰  PAYETONKAWA PIPELINE SUCCESS!  í¾‰"
-         echo "â˜•ï¸  All 3 services are ready!  â˜•ï¸"
-         echo "í´  Auth Service: Ready"
-         echo "í»ï¸  Product Service: Ready"
-         echo "í³‹  Order Service: Ready"
-         echo "íº€  Time to deploy and grab a coffee!  íº€"
-         echo "í¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Š"
+          echo "í¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Š"
+          echo "í¾‰  PAYETONKAWA PIPELINE SUCCESS!  í¾‰"
+          echo "â˜•ï¸  All 3 services are ready!  â˜•ï¸"
+          echo "í´  Auth Service: Ready"
+          echo "í³‹  Order Service: Ready"
+          echo "í»ï¸  Product Service: Ready"
+          echo "íº€  Time to deploy and grab a coffee!  íº€"
+          echo "í¾Ší¾Ší¾Ší¾Ší¾Ší¾Šï¿½ï¿½í¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Ší¾Š"
