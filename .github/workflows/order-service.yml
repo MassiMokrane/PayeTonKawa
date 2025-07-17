@@ -1,14 +1,14 @@
-name: í³‹ Order Service CI/CD
+name: Order Service CI/CD
 
 on:
   push:
     branches: [main, develop, Mokrane_rabah_up]
     paths:
-      - 'backend/order-service/**'
+      - "backend/order-service/**"
   pull_request:
     branches: [main, develop]
     paths:
-      - 'backend/order-service/**'
+      - "backend/order-service/**"
 
 env:
   NODE_VERSION: "20"
@@ -19,7 +19,7 @@ jobs:
   # ========== JOB 1: TESTS ==========
   test-order-service:
     runs-on: ubuntu-latest
-    name: í³‹ Order Service Tests
+    name: Order Service Tests
 
     services:
       mysql:
@@ -51,17 +51,17 @@ jobs:
           --health-retries=10
 
     steps:
-      - name: í³¥ Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: í¿¢ Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
           cache-dependency-path: backend/order-service/package-lock.json
 
-      - name: í³¦ Install Dependencies
+      - name: Install Dependencies
         working-directory: backend/order-service
         run: npm ci
 
@@ -85,7 +85,7 @@ jobs:
             sleep 3
           done
 
-      - name: í·ª Run Unit Tests
+      - name: Run Unit Tests
         working-directory: backend/order-service
         env:
           NODE_ENV: test
@@ -101,7 +101,7 @@ jobs:
           RABBITMQ_URL: amqp://admin:password@localhost:5672
         run: npm run test:unit
 
-      - name: í´— Run Integration Tests
+      - name: Run Integration Tests
         working-directory: backend/order-service
         env:
           NODE_ENV: test
@@ -115,7 +115,7 @@ jobs:
           PORT: 5002
         run: npm run test:integration
 
-      - name: í³Š Run Coverage
+      - name: Run Coverage
         working-directory: backend/order-service
         env:
           NODE_ENV: test
@@ -137,34 +137,34 @@ jobs:
   # ========== JOB 2: SECURITY & BUILD ==========
   security-and-build:
     runs-on: ubuntu-latest
-    name: í´’ Security & Build
+    name: Security & Build
     needs: [test-order-service]
 
     steps:
-      - name: í³¥ Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: í¿¢ Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
           cache-dependency-path: backend/order-service/package-lock.json
 
-      - name: í³¦ Install Dependencies
+      - name: Install Dependencies
         working-directory: backend/order-service
         run: npm ci
 
-      - name: í´ Security Audit
+      - name: Security Audit
         working-directory: backend/order-service
         run: |
-          echo "í´ Running security audit for order-service..."
+          echo " Running security audit for order-service..."
           npm audit --audit-level high || echo "âš ï¸ Security audit completed with warnings"
 
-      - name: í°³ Build Docker Image (Simulation)
+      - name: Build Docker Image (Simulation)
         working-directory: backend/order-service
         run: |
-          echo "í°³ Building Docker image for order-service..."
+          echo " Building Docker image for order-service..."
           echo "FROM node:20-alpine" > Dockerfile.test
           echo "WORKDIR /app" >> Dockerfile.test
           echo "COPY package*.json ./" >> Dockerfile.test
@@ -177,20 +177,20 @@ jobs:
   # ========== JOB 3: DEPLOYMENT SUMMARY ==========
   deployment-summary:
     runs-on: ubuntu-latest
-    name: í³‹ Deployment Summary
+    name: Deployment Summary
     needs: [test-order-service, security-and-build]
     if: always()
 
     steps:
-      - name: í³Š Generate Summary
+      - name: Generate Summary
         run: |
-          echo "# í³‹ Order Service CI/CD Results" >> $GITHUB_STEP_SUMMARY
+          echo "#  Order Service CI/CD Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## í¾¯ Test Results:" >> $GITHUB_STEP_SUMMARY
+          echo "##  Test Results:" >> $GITHUB_STEP_SUMMARY
           echo "- **Order Service Tests**: ${{ needs.test-order-service.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Security & Build**: ${{ needs.security-and-build.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## í³Š Statistics:" >> $GITHUB_STEP_SUMMARY
+          echo "##  Statistics:" >> $GITHUB_STEP_SUMMARY
           echo "- **Total Tests**: ~35 tests" >> $GITHUB_STEP_SUMMARY
           echo "- **Coverage**: > 70%" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit SHA**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
@@ -198,15 +198,15 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [[ "${{ needs.test-order-service.result }}" == "success" && "${{ needs.security-and-build.result }}" == "success" ]]; then
-            echo "## í¾‰ **ORDER SERVICE READY** - Ready for deployment! í³‹" >> $GITHUB_STEP_SUMMARY
+            echo "##  **ORDER SERVICE READY** - Ready for deployment! " >> $GITHUB_STEP_SUMMARY
           else
             echo "## âŒ **ORDER SERVICE FAILED** - Please check the logs above" >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: í¾¯ Final Status
+      - name: Final Status
         run: |
           if [[ "${{ needs.test-order-service.result }}" == "success" && "${{ needs.security-and-build.result }}" == "success" ]]; then
-            echo "í¾‰ Order Service is ready for deployment!"
+            echo " Order Service is ready for deployment!"
             echo "âœ… Order Service: Ready"
           else
             echo "âŒ Order Service failed - deployment blocked"
