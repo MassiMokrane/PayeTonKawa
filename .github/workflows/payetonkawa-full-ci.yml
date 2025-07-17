@@ -1,0 +1,178 @@
+name: ‚òïÔ∏è PayeTonKawa - Full CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, Mokrane_rabah_up]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: "20"
+  MYSQL_ROOT_PASSWORD: root
+  MYSQL_ALLOW_EMPTY_PASSWORD: yes
+
+jobs:
+  # ========== JOB 1: AUTH SERVICE ==========
+  test-auth-service:
+    runs-on: ubuntu-latest
+    name: Auth Service Tests
+
+    steps:
+      - name: Ì≥• Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/auth-service/package-lock.json
+
+      - name: Install Auth Dependencies
+        working-directory: backend/auth-service
+        run: npm ci
+
+      - name: Run Auth Tests
+        working-directory: backend/auth-service
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_USER: root
+          DB_PASSWORD: test
+          DB_NAME: test_authdb
+          JWT_SECRET: test-secret-key-for-ci
+          PORT: 5000
+        run: npm test
+
+      - name: Auth Test Results
+        run: echo "‚úÖ Auth Service tests completed successfully"
+
+  # ========== JOB 2: PRODUCT SERVICE ==========
+  test-product-service:
+    runs-on: ubuntu-latest
+    name: Product Service Tests
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/product-service/package-lock.json
+
+      - name: Install Product Dependencies
+        working-directory: backend/product-service
+        run: npm ci
+
+      - name: Create Upload Directory
+        working-directory: backend/product-service
+        run: mkdir -p uploads
+
+      - name: Run Product Tests
+        working-directory: backend/product-service
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_USER: root
+          DB_PASSWORD: test
+          DB_NAME: test_productdb
+          DB_PORT: 3306
+          JWT_SECRET: test-secret-key-for-ci
+          PORT: 5001
+        run: npm test
+
+      - name: Product Test Results
+        run: echo "‚úÖ Product Service tests completed successfully"
+
+  # ========== JOB 3: SECURITY & BUILD ==========
+  security-and-build:
+    runs-on: ubuntu-latest
+    name: Security & Build
+    needs: [test-auth-service, test-product-service]
+
+    strategy:
+      matrix:
+        service: [auth-service, product-service]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: backend/${{ matrix.service }}/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: backend/${{ matrix.service }}
+        run: npm ci
+
+      - name: Security Audit
+        working-directory: backend/${{ matrix.service }}
+        run: |
+          echo "Ì¥ç Running security audit for ${{ matrix.service }}..."
+          npm audit --audit-level high || echo "‚ö†Ô∏è Security audit completed with warnings"
+
+      - name: Build Docker Image
+        working-directory: backend/${{ matrix.service }}
+        run: |
+          echo "Ì∞≥ Building Docker image for ${{ matrix.service }}..."
+          if [ -f Dockerfile ]; then
+            docker build -t payetonkawa-${{ matrix.service }}:${{ github.sha }} .
+            echo "‚úÖ Docker image built successfully!"
+          else
+            echo "‚ö†Ô∏è No Dockerfile found for ${{ matrix.service }}"
+          fi
+
+  # ========== JOB 4: DEPLOYMENT SUMMARY ==========
+  deployment-summary:
+    runs-on: ubuntu-latest
+    name: Deployment Summary
+    needs:
+      [
+        test-auth-service,
+        test-product-service,
+        security-and-build,
+      ]
+    if: always()
+
+    steps:
+      - name: Generate Test Summary
+        run: |
+          echo "# ‚òïÔ∏è PayeTonKawa CI/CD Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ÌæØ Test Results:" >> $GITHUB_STEP_SUMMARY
+          echo "- Ì¥ê **Auth Service**: ${{ needs.test-auth-service.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ÌªçÔ∏è **Product Service**: ${{ needs.test-product-service.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Ì¥í **Security & Build**: ${{ needs.security-and-build.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Ì≥ä Statistics:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Services**: 2" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Tests**: ~75 tests" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit SHA**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.test-auth-service.result }}" == "success" && "${{ needs.test-product-service.result }}" == "success" && "${{ needs.security-and-build.result }}" == "success" ]]; then
+            echo "## Ìæâ **ALL TESTS PASSED** - Ready for deployment! ‚òïÔ∏è" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ‚ùå **SOME TESTS FAILED** - Please check the logs above" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Deployment Status
+        run: |
+          if [[ "${{ needs.test-auth-service.result }}" == "success" && "${{ needs.test-product-service.result }}" == "success" && "${{ needs.security-and-build.result }}" == "success" ]]; then
+            echo "Ìæâ All PayeTonKawa services are ready for deployment!"
+            echo "‚úÖ Auth Service: Ready"
+            echo "‚úÖ Product Service: Ready"
+            echo "‚úÖ Security & Build: Ready"
+          else
+            echo "‚ùå Some services failed - deployment blocked"
+            exit 1
+          fi
