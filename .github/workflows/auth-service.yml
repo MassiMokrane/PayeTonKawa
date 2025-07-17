@@ -2,7 +2,7 @@ name: Auth Service CI
 
 on:
   push:
-    branches: [ main, develop, Mokrane_rabah_up ]
+    branches: [ main, develop, Branch_ci ]
     paths:
       - 'backend/auth-service/**'
       - '.github/workflows/auth-service.yml'

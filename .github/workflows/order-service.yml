@@ -2,7 +2,7 @@ name: Order Service CI/CD
 
 on:
   push:
-    branches: [main, develop, Mokrane_rabah_up]
+    branches: [main, develop, Branch_ci]
     paths:
       - "backend/order-service/**"
   pull_request:

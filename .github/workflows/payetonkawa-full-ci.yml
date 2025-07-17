@@ -2,7 +2,7 @@ name: ☕️ PayeTonKawa - Full CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop, Mokrane_rabah_up]
+    branches: [main, develop, Branch_ci]
   pull_request:
     branches: [main, develop]
 
