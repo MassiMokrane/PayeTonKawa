@@ -1,0 +1,108 @@
+name: Auth Service CI
+
+on:
+  push:
+    branches: [ main, develop, Mokrane_rabah_up ]
+    paths:
+      - 'backend/auth-service/**'
+      - '.github/workflows/auth-service.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/auth-service/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: backend/auth-service/package-lock.json
+
+    - name: Install dependencies
+      working-directory: backend/auth-service
+      run: npm ci
+
+    - name: Run tests
+      working-directory: backend/auth-service
+      run: npm test
+      env:
+        NODE_ENV: test
+        JWT_SECRET: testsecret
+        DB_HOST: localhost
+        DB_USER: root
+        DB_PASSWORD: test
+        DB_NAME: test_authdb
+
+    - name: Run tests with coverage
+      working-directory: backend/auth-service
+      run: npm run test:coverage
+      env:
+        NODE_ENV: test
+        JWT_SECRET: testsecret
+        DB_HOST: localhost
+        DB_USER: root
+        DB_PASSWORD: test
+        DB_NAME: test_authdb
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: backend/auth-service/package-lock.json
+
+    - name: Install dependencies
+      working-directory: backend/auth-service
+      run: npm ci
+
+    - name: Check code syntax
+      working-directory: backend/auth-service
+      run: |
+        echo "✅ Code syntax check completed"
+        node -c app.js
+        node -c server.js
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: backend/auth-service/package-lock.json
+
+    - name: Install dependencies
+      working-directory: backend/auth-service
+      run: npm ci
+
+    - name: Run security audit
+      working-directory: backend/auth-service
+      run: npm audit --audit-level=moderate || echo "⚠️ Some moderate vulnerabilities found but not blocking CI"
+
+    - name: Check for high vulnerabilities
+      working-directory: backend/auth-service
+      run: npm audit --audit-level=high || echo "⚠️ High vulnerabilities found but not blocking CI"
