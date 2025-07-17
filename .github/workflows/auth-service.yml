@@ -77,7 +77,7 @@ jobs:
     - name: Check code syntax
       working-directory: backend/auth-service
       run: |
-        echo "✅ Code syntax check completed"
+        echo "✅ Codee syntax check completed"
         node -c app.js
         node -c server.js
 
