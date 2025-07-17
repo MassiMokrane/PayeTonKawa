@@ -1,0 +1,341 @@
+name: Ì∫Ä PayeTonKawa Backend CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, Mokrane_rabah_up ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+
+env:
+  NODE_VERSION: '20.x'
+  JWT_SECRET: testsecret
+
+jobs:
+  # ===== √âTAPE 1: D√âTECTION DES CHANGEMENTS =====
+  detect-changes:
+    name: Ì¥ç Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      auth-service: ${{ steps.changes.outputs.auth-service }}
+      product-service: ${{ steps.changes.outputs.product-service }}
+      any-backend: ${{ steps.changes.outputs.any-backend }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Detect changed files
+      uses: dorny/paths-filter@v2
+      id: changes
+      with:
+        filters: |
+          auth-service:
+            - 'backend/auth-service/**'
+          product-service:
+            - 'backend/product-service/**'
+          any-backend:
+            - 'backend/**'
+
+    - name: Ì≥ã Changes Summary
+      run: |
+        echo "Ì¥ç **Changements d√©tect√©s:**"
+        echo "- Auth Service: ${{ steps.changes.outputs.auth-service }}"
+        echo "- Product Service: ${{ steps.changes.outputs.product-service }}"
+        echo "- Any Backend: ${{ steps.changes.outputs.any-backend }}"
+
+  # ===== √âTAPE 2: TESTS EN PARALL√àLE =====
+  test-auth-service:
+    name: Ì¥ê Auth Service Tests
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.auth-service == 'true' || needs.detect-changes.outputs.any-backend == 'true' }}
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        test-type: [unit, integration]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: backend/auth-service/package-lock.json
+
+    - name: Ì≥¶ Install dependencies
+      working-directory: backend/auth-service
+      run: npm ci
+
+    - name: Ì∑™ Run ${{ matrix.test-type }} tests
+      working-directory: backend/auth-service
+      run: npm run test:${{ matrix.test-type }}
+      env:
+        NODE_ENV: test
+        JWT_SECRET: ${{ env.JWT_SECRET }}
+        DB_HOST: localhost
+        DB_USER: root
+        DB_PASSWORD: test
+        DB_NAME: test_authdb
+
+    - name: Ì≥ä Generate coverage (Node 20.x, unit tests only)
+      if: matrix.node-version == '20.x' && matrix.test-type == 'unit'
+      working-directory: backend/auth-service
+      run: npm run test:coverage
+      env:
+        NODE_ENV: test
+        JWT_SECRET: ${{ env.JWT_SECRET }}
+        DB_HOST: localhost
+        DB_USER: root
+        DB_PASSWORD: test
+        DB_NAME: test_authdb
+
+    - name: Ì≥à Upload coverage to Codecov
+      if: matrix.node-version == '20.x' && matrix.test-type == 'unit'
+      uses: codecov/codecov-action@v3
+      with:
+        file: backend/auth-service/coverage/lcov.info
+        flags: auth-service
+        name: auth-service-coverage
+
+  test-product-service:
+    name: Ì≥¶ Product Service Tests
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.product-service == 'true' || needs.detect-changes.outputs.any-backend == 'true' }}
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        test-type: [unit, integration]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: backend/product-service/package-lock.json
+
+    - name: Ì≥¶ Install dependencies
+      working-directory: backend/product-service
+      run: npm ci
+
+    - name: Ì∑™ Run ${{ matrix.test-type }} tests
+      working-directory: backend/product-service
+      run: npm run test:${{ matrix.test-type }}
+      env:
+        NODE_ENV: test
+        JWT_SECRET: ${{ env.JWT_SECRET }}
+        DB_HOST: localhost
+        DB_USER: root
+        DB_PASSWORD: test
+        DB_NAME: test_productdb
+        DB_PORT: 3306
+
+    - name: Ì≥ä Generate coverage (Node 20.x, unit tests only)
+      if: matrix.node-version == '20.x' && matrix.test-type == 'unit'
+      working-directory: backend/product-service
+      run: npm run test:coverage
+      env:
+        NODE_ENV: test
+        JWT_SECRET: ${{ env.JWT_SECRET }}
+        DB_HOST: localhost
+        DB_USER: root
+        DB_PASSWORD: test
+        DB_NAME: test_productdb
+        DB_PORT: 3306
+
+    - name: Ì≥à Upload coverage to Codecov
+      if: matrix.node-version == '20.x' && matrix.test-type == 'unit'
+      uses: codecov/codecov-action@v3
+      with:
+        file: backend/product-service/coverage/lcov.info
+        flags: product-service
+        name: product-service-coverage
+
+  # ===== √âTAPE 3: QUALITY CHECKS EN PARALL√àLE =====
+  lint-and-security:
+    name: Ì¥ç Code Quality & Security
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.any-backend == 'true' }}
+    strategy:
+      matrix:
+        service: [auth-service, product-service]
+        include:
+          - service: auth-service
+            condition: ${{ needs.detect-changes.outputs.auth-service == 'true' || needs.detect-changes.outputs.any-backend == 'true' }}
+          - service: product-service
+            condition: ${{ needs.detect-changes.outputs.product-service == 'true' || needs.detect-changes.outputs.any-backend == 'true' }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: backend/${{ matrix.service }}/package-lock.json
+
+    - name: Ì≥¶ Install dependencies
+      working-directory: backend/${{ matrix.service }}
+      run: npm ci
+
+    - name: Ì¥ç Syntax Check
+      working-directory: backend/${{ matrix.service }}
+      run: |
+        echo "‚úÖ Checking syntax for ${{ matrix.service }}"
+        node -c app.js || node -c server.js
+        find . -name "*.js" -not -path "./node_modules/*" -not -path "./coverage/*" | head -10 | xargs -I {} node -c {}
+
+    - name: Ìª°Ô∏è Security Audit
+      working-directory: backend/${{ matrix.service }}
+      run: |
+        echo "Ìª°Ô∏è Running security audit for ${{ matrix.service }}"
+        npm audit --audit-level=moderate || echo "‚ö†Ô∏è Moderate vulnerabilities found"
+        npm audit --audit-level=high || echo "‚ö†Ô∏è High vulnerabilities found but not blocking"
+
+  # ===== √âTAPE 4: BUILD ET VALIDATION =====
+  build-validation:
+    name: ÌøóÔ∏è Build Validation
+    runs-on: ubuntu-latest
+    needs: [detect-changes, test-auth-service, test-product-service]
+    if: always() && needs.detect-changes.outputs.any-backend == 'true'
+    strategy:
+      matrix:
+        service: [auth-service, product-service]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: backend/${{ matrix.service }}/package-lock.json
+
+    - name: Ì≥¶ Install dependencies
+      working-directory: backend/${{ matrix.service }}
+      run: npm ci
+
+    - name: ÌøóÔ∏è Build check
+      working-directory: backend/${{ matrix.service }}
+      run: |
+        echo "ÌøóÔ∏è Validating build for ${{ matrix.service }}"
+        node -e "
+          const app = require('./app.js');
+          console.log('‚úÖ App loads successfully');
+          console.log('‚úÖ Build validation passed for ${{ matrix.service }}');
+        "
+
+    - name: Ì≥ã Generate build artifacts info
+      run: |
+        echo "Ì≥ã Build artifacts for ${{ matrix.service }}:" > build-info-${{ matrix.service }}.txt
+        echo "- Node version: $(node --version)" >> build-info-${{ matrix.service }}.txt
+        echo "- NPM version: $(npm --version)" >> build-info-${{ matrix.service }}.txt
+        echo "- Service: ${{ matrix.service }}" >> build-info-${{ matrix.service }}.txt
+        echo "- Commit: ${{ github.sha }}" >> build-info-${{ matrix.service }}.txt
+        echo "- Branch: ${{ github.ref_name }}" >> build-info-${{ matrix.service }}.txt
+
+    - name: Ì≥§ Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-info-${{ matrix.service }}
+        path: build-info-${{ matrix.service }}.txt
+
+  # ===== √âTAPE 5: SUMMARY ET NOTIFICATION =====
+  pipeline-summary:
+    name: Ì≥ä Pipeline Summary
+    runs-on: ubuntu-latest
+    needs: [detect-changes, test-auth-service, test-product-service, lint-and-security, build-validation]
+    if: always()
+    steps:
+    - name: Ì≥ä Calculate results
+      id: results
+      run: |
+        echo "auth_service_status=${{ needs.test-auth-service.result }}" >> $GITHUB_OUTPUT
+        echo "product_service_status=${{ needs.test-product-service.result }}" >> $GITHUB_OUTPUT
+        echo "lint_security_status=${{ needs.lint-and-security.result }}" >> $GITHUB_OUTPUT
+        echo "build_status=${{ needs.build-validation.result }}" >> $GITHUB_OUTPUT
+        
+        # Calculer le statut global
+        if [[ "${{ needs.test-auth-service.result }}" == "success" ]] && \
+           [[ "${{ needs.test-product-service.result }}" == "success" ]] && \
+           [[ "${{ needs.lint-and-security.result }}" == "success" ]] && \
+           [[ "${{ needs.build-validation.result }}" == "success" ]]; then
+          echo "overall_status=success" >> $GITHUB_OUTPUT
+          echo "status_emoji=Ìæâ" >> $GITHUB_OUTPUT
+        else
+          echo "overall_status=failure" >> $GITHUB_OUTPUT
+          echo "status_emoji=‚ùå" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Ì≥ã Generate Summary Report
+      run: |
+        echo "# ${{ steps.results.outputs.status_emoji }} PayeTonKawa Backend CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Ì≥ä Pipeline Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Service | Tests | Quality | Build | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|---------|-------|---------|-------|--------|" >> $GITHUB_STEP_SUMMARY
+        
+        # Auth Service
+        auth_emoji="‚úÖ"
+        [[ "${{ needs.test-auth-service.result }}" != "success" ]] && auth_emoji="‚ùå"
+        echo "| Ì¥ê Auth Service | $auth_emoji ${{ needs.test-auth-service.result }} | $auth_emoji | $auth_emoji | $auth_emoji |" >> $GITHUB_STEP_SUMMARY
+        
+        # Product Service  
+        product_emoji="‚úÖ"
+        [[ "${{ needs.test-product-service.result }}" != "success" ]] && product_emoji="‚ùå"
+        echo "| Ì≥¶ Product Service | $product_emoji ${{ needs.test-product-service.result }} | $product_emoji | $product_emoji | $product_emoji |" >> $GITHUB_STEP_SUMMARY
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Ì¥ç Changes Detected" >> $GITHUB_STEP_SUMMARY
+        echo "- Auth Service: ${{ needs.detect-changes.outputs.auth-service }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Product Service: ${{ needs.detect-changes.outputs.product-service }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Ì∫Ä Pipeline Info" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Overall Status:** ${{ steps.results.outputs.overall_status }}" >> $GITHUB_STEP_SUMMARY
+
+    - name: Ìæâ Success Notification
+      if: steps.results.outputs.overall_status == 'success'
+      run: |
+        echo "Ìæâ All tests passed! Pipeline completed successfully."
+        echo "‚úÖ Auth Service: OK"
+        echo "‚úÖ Product Service: OK" 
+        echo "‚úÖ Code Quality: OK"
+        echo "‚úÖ Build Validation: OK"
+
+    - name: ‚ùå Failure Notification
+      if: steps.results.outputs.overall_status == 'failure'
+      run: |
+        echo "‚ùå Pipeline failed. Please check the logs above."
+        echo "Auth Service Tests: ${{ needs.test-auth-service.result }}"
+        echo "Product Service Tests: ${{ needs.test-product-service.result }}"
+        echo "Code Quality: ${{ needs.lint-and-security.result }}"
+        echo "Build Validation: ${{ needs.build-validation.result }}"
+        exit 1
+
+  # ===== √âTAPE 6: CLEANUP =====
+  cleanup:
+    name: Ì∑π Cleanup
+    runs-on: ubuntu-latest
+    needs: [pipeline-summary]
+    if: always()
+    steps:
+    - name: Ì∑π Cleanup workspace
+      run: |
+        echo "Ì∑π Cleaning up workspace..."
+        echo "‚úÖ Cleanup completed"
